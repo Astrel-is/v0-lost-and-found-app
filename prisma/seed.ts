@@ -216,10 +216,10 @@ async function main() {
   ]
 
   for (const pb of playbooks) {
-    await prisma.playbook.createMany({
-      data: pb,
-      skipDuplicates: true,
-    })
+    const existing = await prisma.playbook.findFirst({ where: { title: pb.title } })
+    if (!existing) {
+      await prisma.playbook.create({ data: pb })
+    }
   }
 
   console.log("Database seeded successfully!")
