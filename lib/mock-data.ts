@@ -314,13 +314,14 @@ export const mockReleaseLogs: ReleaseLog[] = [
   },
 ]
 
-// Mock Users
+// Mock Users - passwords are NOT stored in client-side code for security
+// Passwords are only managed server-side via the auth API
 export const mockUsers: User[] = [
   {
     id: "u1",
     name: "John Doe",
     username: "johndoe",
-    password: "password123",
+    password: "", // Never expose passwords client-side
     role: "user",
     itemsUploaded: 3,
     claimsSubmitted: 1,
@@ -348,7 +349,7 @@ export const mockUsers: User[] = [
     id: "u2",
     name: "Tom Anderson",
     username: "tomanderson",
-    password: "password123",
+    password: "",
     role: "volunteer",
     itemsUploaded: 0,
     claimsSubmitted: 0,
@@ -365,7 +366,7 @@ export const mockUsers: User[] = [
     id: "u3",
     name: "Admin User",
     username: "admin",
-    password: "admin123",
+    password: "",
     role: "admin",
     itemsUploaded: 0,
     claimsSubmitted: 0,
@@ -382,7 +383,7 @@ export const mockUsers: User[] = [
     id: "u4",
     name: "Sarah Johnson",
     username: "sarahjohnson",
-    password: "password123",
+    password: "",
     role: "user",
     itemsUploaded: 5,
     claimsSubmitted: 2,
@@ -402,7 +403,7 @@ export const mockUsers: User[] = [
     id: "u5",
     name: "Michael Chen",
     username: "michaelchen",
-    password: "password123",
+    password: "",
     role: "user",
     itemsUploaded: 2,
     claimsSubmitted: 3,
@@ -423,7 +424,7 @@ export const mockUsers: User[] = [
     id: "u6",
     name: "Emily Rodriguez",
     username: "emilyrodriguez",
-    password: "password123",
+    password: "",
     role: "volunteer",
     itemsUploaded: 1,
     claimsSubmitted: 0,
@@ -440,7 +441,7 @@ export const mockUsers: User[] = [
     id: "u7",
     name: "David Park",
     username: "davidpark",
-    password: "password123",
+    password: "",
     role: "user",
     itemsUploaded: 1,
     claimsSubmitted: 1,
@@ -459,7 +460,7 @@ export const mockUsers: User[] = [
     id: "u8",
     name: "Jennifer Williams",
     username: "jenniferwilliams",
-    password: "password123",
+    password: "",
     role: "volunteer",
     itemsUploaded: 0,
     claimsSubmitted: 0,

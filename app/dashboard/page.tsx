@@ -26,21 +26,45 @@ export default function DashboardPage() {
   const router = useRouter()
   const [items, setItems] = useState(getItems())
   const [claims, setClaims] = useState(getClaims())
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     initializeStorage()
     setItems(getItems())
     setClaims(getClaims())
+    setIsLoaded(true)
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isLoaded && !isAuthenticated) {
       router.push("/login")
     }
-  }, [isAuthenticated, router])
+  }, [isLoaded, isAuthenticated, router])
 
-  if (!isAuthenticated) {
-    return null
+  if (!isLoaded || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-4 py-6 sm:py-8 pb-24 sm:pb-8">
+          <div className="mb-6 sm:mb-8 space-y-2">
+            <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-4 w-80 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-muted animate-pulse rounded-lg" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                    <div className="h-3 w-48 bg-muted animate-pulse rounded" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </main>
+      </div>
+    )
   }
 
   const userUploads = items.filter((item) => item.uploadedBy === user?.name)

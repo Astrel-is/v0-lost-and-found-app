@@ -111,11 +111,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Username already exists" }, { status: 400 })
     }
 
-    // Validate password strength
-    if (password.length < 6) {
-      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
-    }
-
     // Hash password
     const hashedPassword = await hashPassword(password)
 

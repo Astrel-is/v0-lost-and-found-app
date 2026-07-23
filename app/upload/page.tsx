@@ -32,20 +32,41 @@ export default function UploadPage() {
   const [dateFound, setDateFound] = useState(new Date().toISOString().split("T")[0])
   const [description, setDescription] = useState("")
   const [locations, setLocations] = useState<{ id: string; name: string; description?: string; createdAt: string }[]>([])
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     initializeStorage()
     setLocations(getLocations())
+    setIsLoaded(true)
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isLoaded && !isAuthenticated) {
       router.push("/login")
     }
-  }, [isAuthenticated, router])
+  }, [isLoaded, isAuthenticated, router])
 
-  if (!isAuthenticated) {
-    return null
+  if (!isLoaded || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-4 py-6 sm:py-8 pb-24 sm:pb-8">
+          <div className="mx-auto max-w-2xl space-y-6">
+            <div className="space-y-2">
+              <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+              <div className="h-4 w-80 bg-muted animate-pulse rounded" />
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6 space-y-6">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                  <div className="h-10 w-full bg-muted animate-pulse rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

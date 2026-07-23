@@ -28,7 +28,11 @@ const base64UrlDecode = (input: string): Buffer => {
 const getJwtSecret = (): string => {
   const secret = process.env.JWT_SECRET
   if (!secret || typeof secret !== "string" || secret.length < 16) {
-    throw new Error("Missing/invalid JWT_SECRET (must be at least 16 characters)")
+    throw new Error(
+      "Missing or invalid JWT_SECRET environment variable. " +
+      "Set JWT_SECRET to a secure random string of at least 16 characters. " +
+      "Example: openssl rand -hex 32"
+    )
   }
   return secret
 }

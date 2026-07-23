@@ -20,21 +20,51 @@ export default function BrowsePage() {
   const [locationFilter, setLocationFilter] = useState("all")
   const [items, setItems] = useState(getItems())
   const [locations, setLocations] = useState(getLocations())
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     initializeStorage()
     setItems(getItems())
     setLocations(getLocations())
+    setIsLoaded(true)
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isLoaded && !isAuthenticated) {
       router.push("/login")
     }
-  }, [isAuthenticated, router])
+  }, [isLoaded, isAuthenticated, router])
 
-  if (!isAuthenticated) {
-    return null
+  if (!isLoaded || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-4 py-6 sm:py-8 pb-24 sm:pb-8">
+          <div className="mb-6 sm:mb-8 space-y-2">
+            <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-4 w-80 bg-muted animate-pulse rounded" />
+          </div>
+          <div className="mb-6 space-y-4">
+            <div className="h-10 w-full bg-muted animate-pulse rounded" />
+            <div className="flex gap-4">
+              <div className="h-10 w-[180px] bg-muted animate-pulse rounded" />
+              <div className="h-10 w-[180px] bg-muted animate-pulse rounded" />
+              <div className="h-10 w-[180px] bg-muted animate-pulse rounded" />
+            </div>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="aspect-square bg-muted animate-pulse" />
+                <div className="p-4 space-y-3">
+                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+    )
   }
 
   const filteredItems = items.filter((item) => {
