@@ -9,8 +9,12 @@ echo ""
 echo "[1/4] Installing dependencies..."
 pnpm install
 
-# 2. Set up database
+# 2. Set up database (reset if schema drift, then migrate)
 echo "[2/4] Setting up database..."
+if [ -f prisma/dev.db ]; then
+  echo "  Database exists, checking for schema drift..."
+  pnpm prisma migrate reset --force 2>/dev/null || true
+fi
 pnpm db:migrate
 
 # 3. Seed default users
