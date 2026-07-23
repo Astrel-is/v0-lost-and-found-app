@@ -1,9 +1,5 @@
 {
   "buildCommand": "prisma migrate deploy && prisma generate && next build",
   "outputDirectory": ".next",
-  "env": {
-    "JWT_SECRET": "@jwt_secret",
-    "DATABASE_URL": "@database_url"
-  },
   "framework": "nextjs"
 }
