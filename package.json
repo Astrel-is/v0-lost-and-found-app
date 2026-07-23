@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "start": "next start",
     "test:security": "tsx tests/security-noauth-regression.test.ts",
-    "vercel-build": "prisma migrate deploy && prisma generate && next build"
+    "vercel-build": "prisma generate && next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
