@@ -20,6 +20,7 @@
     "postinstall": "prisma generate",
     "lint": "eslint .",
     "start": "next start",
+    "setup": "bash start.sh",
     "test:security": "tsx tests/security-noauth-regression.test.ts",
     "vercel-build": "prisma generate && next build"
   },
