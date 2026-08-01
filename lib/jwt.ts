@@ -5,6 +5,7 @@ type JwtPayload = {
   role: string
   username: string
   name: string
+  tokenVersion: number
   iat: number
   exp: number
 }
@@ -34,11 +35,21 @@ const getJwtSecret = (): string => {
       "Example: openssl rand -hex 32"
     )
   }
+  // Reject obviously placeholder/known values so they can never be used in production.
+  const placeholder = /dev-jwt-secret|your-secure|change-in-production|changeme|password/i
+  if (placeholder.test(secret)) {
+    throw new Error(
+      "JWT_SECRET appears to be a placeholder/weak value. " +
+      "Generate a strong random secret (e.g. `openssl rand -hex 32`) and set JWT_SECRET."
+    )
+  }
   return secret
 }
 
 export function signAccessToken(payload: Omit<JwtPayload, "iat" | "exp">, opts?: { ttlSeconds?: number }): string {
-  const ttlSeconds = opts?.ttlSeconds ?? 15 * 60 // 15 minutes
+  // Default TTL (8h) matches the auth_token cookie maxAge set in the login route
+  // so sessions are not force-expired while the cookie is still valid.
+  const ttlSeconds = opts?.ttlSeconds ?? 8 * 60 * 60
   const now = Math.floor(Date.now() / 1000)
 
   const fullPayload: JwtPayload = {
@@ -84,6 +95,7 @@ export function verifyAccessToken(token: string): JwtPayload | null {
 
     if (!payload?.sub || !payload?.role || !payload?.username || !payload?.name) return null
     if (typeof payload.exp !== "number") return null
+    if (typeof payload.tokenVersion !== "number") return null
 
     const now = Math.floor(Date.now() / 1000)
     if (payload.exp <= now) return null

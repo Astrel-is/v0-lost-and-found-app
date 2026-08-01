@@ -4,6 +4,7 @@ import { comparePassword, hashPassword } from "@/lib/db"
 import { changePasswordSchema, validateAndSanitize } from "@/lib/validation"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { requireAuth } from "@/lib/auth-middleware"
+import { signAccessToken } from "@/lib/jwt"
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,10 +48,10 @@ export async function POST(request: NextRequest) {
     // Hash new password
     const hashedPassword = await hashPassword(newPassword)
 
-    // Update password
-    await prisma.user.update({
+    // Bump tokenVersion to revoke every existing session (other devices/browsers).
+    const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, tokenVersion: { increment: 1 } },
     })
 
     // Add audit log
@@ -64,7 +65,26 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ message: "Password changed successfully" })
+    // Issue a fresh cookie carrying the new tokenVersion so the current session
+    // stays active while all previously issued tokens are now invalid.
+    const newToken = signAccessToken({
+      sub: user.id,
+      role: user.role,
+      username: user.username,
+      name: user.name,
+      tokenVersion: updatedUser.tokenVersion,
+    })
+
+    const response = NextResponse.json({ message: "Password changed successfully" })
+    response.cookies.set("auth_token", newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 8, // 8 hours
+    })
+
+    return response
   } catch (error) {
     console.error("Change password error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

@@ -51,21 +51,11 @@ export async function GET(request: NextRequest) {
       prisma.item.findMany({
         where,
         include: {
+          // Public list endpoint: do not expose uploader identity or claimant PII.
           uploadedBy: {
             select: {
               id: true,
-              name: true,
-              username: true,
             },
-          },
-          claims: {
-            select: {
-              id: true,
-              status: true,
-              claimantName: true,
-              claimedAt: true,
-            },
-            take: 5, // Limit claims per item
           },
         },
         orderBy: { createdAt: "desc" },

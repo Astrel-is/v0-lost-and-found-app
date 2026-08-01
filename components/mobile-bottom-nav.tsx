@@ -118,6 +118,7 @@ export function MobileBottomNav() {
         {hasMore && (
           <Link
             href={user.role === "admin" ? "/admin" : "/dashboard"}
+            aria-label="More navigation items"
             className="flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-2 transition-colors text-muted-foreground hover:text-foreground"
           >
             <MoreHorizontal className="h-5 w-5 shrink-0" />

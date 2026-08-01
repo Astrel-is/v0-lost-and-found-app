@@ -1,9 +1,13 @@
-"use client"
-
 import Link from "next/link"
+import type { Metadata } from "next"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { FileQuestion } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Page Not Found | Vault Church",
+  robots: { index: false, follow: false },
+}
 
 export default function NotFound() {
   return (

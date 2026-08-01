@@ -8,6 +8,12 @@ import { updateItemSchema, validateAndSanitize } from "@/lib/validation"
 // GET item by ID
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Require authentication: item details (and claims) contain personal data.
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const { id } = await params
     
     // Validate ID to prevent path traversal
@@ -15,6 +21,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!idValidation.valid) {
       return NextResponse.json({ error: idValidation.error || "Invalid ID format" }, { status: 400 })
     }
+
+    const isStaff = authResult.user.role === "admin" || authResult.user.role === "volunteer"
+
     const item = await prisma.item.findUnique({
       where: { id },
       include: {
@@ -26,15 +35,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           },
         },
         claims: {
-          include: {
-            claimant: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-              },
-            },
-          },
+          // Only staff see claimant identity; regular users see the claim exists but not who filed it.
+          include: isStaff
+            ? {
+                claimant: {
+                  select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                  },
+                },
+              }
+            : undefined,
+          ...(isStaff ? {} : { select: { id: true, itemName: true, status: true, claimedAt: true } }),
           orderBy: { claimedAt: "desc" },
         },
       },

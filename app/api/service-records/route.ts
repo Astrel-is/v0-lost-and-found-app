@@ -25,8 +25,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: idValidation.error || "Invalid user ID format" }, { status: 400 })
     }
 
-    // Regular users can only view their own service records.
-    if (authResult.user.role === "user" && userId !== authResult.user.id) {
+    // Regular users and volunteers can only view their own service records.
+    // Only admins may query another user's records.
+    if (authResult.user.role !== "admin" && userId !== authResult.user.id) {
       return NextResponse.json({ error: "Forbidden - Insufficient permissions" }, { status: 403 })
     }
 

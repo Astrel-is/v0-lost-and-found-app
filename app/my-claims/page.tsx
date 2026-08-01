@@ -90,7 +90,7 @@ export default function MyClaimsPage() {
 
           {userClaims.length === 0 && (
             <Card className="p-12 text-center">
-              <p className="mb-4 text-muted-foreground">You haven't submitted any claims yet</p>
+              <p className="mb-4 text-muted-foreground">You haven&apos;t submitted any claims yet</p>
               <Link href="/browse">
                 <Button>Browse Items</Button>
               </Link>

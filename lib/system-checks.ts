@@ -3,7 +3,7 @@
  * These ensure the system behaves correctly in production
  */
 
-import { getItems, getClaims, getMissions, saveItems, updateItem, updateClaim } from "./storage"
+import { getItems, getClaims, getMissions, saveItems, updateItem, updateClaim, getSystemSettings } from "./storage"
 import type { Item, Claim } from "./mock-data"
 
 /**
@@ -42,14 +42,13 @@ export function validateDataIntegrity(): {
 } {
   let fixedItems = 0
   let fixedClaims = 0
-  let fixedMissions = 0
+  const fixedMissions = 0
 
   // Check items
   const items = getItems()
   items.forEach((item) => {
     // Ensure donation deadline exists for available items
     if (item.status === "available" && !item.donationDeadline) {
-      const { getSystemSettings } = require("./storage")
       const settings = getSystemSettings()
       const foundDate = new Date(item.dateFounded)
       const deadline = new Date(foundDate)

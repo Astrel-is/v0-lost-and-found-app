@@ -198,7 +198,7 @@ export interface User {
 export const mockItems: Item[] = [
   {
     id: "1",
-    imageUrl: "/black-leather-wallet.png",
+    imageUrl: "/black-leather-wallet.webp",
     category: "Wallet",
     color: "Black",
     location: "Main Sanctuary - Pew 12",
@@ -223,7 +223,7 @@ export const mockItems: Item[] = [
   },
   {
     id: "3",
-    imageUrl: "/silver-wristwatch.png",
+    imageUrl: "/silver-wristwatch.webp",
     category: "Watch",
     color: "Silver",
     location: "Parking Lot B",
@@ -248,7 +248,7 @@ export const mockItems: Item[] = [
   },
   {
     id: "5",
-    imageUrl: "/diverse-eyeglasses.png",
+    imageUrl: "/diverse-eyeglasses.webp",
     category: "Eyeglasses",
     color: "Black",
     location: "Children's Ministry Room",
@@ -289,7 +289,7 @@ export const mockClaims: Claim[] = [
     id: "c2",
     itemId: "5",
     itemName: "Black Eyeglasses",
-    itemImage: "/diverse-eyeglasses.png",
+    itemImage: "/diverse-eyeglasses.webp",
     proofImage: "/eyeglasses-on-table.jpg",
     claimantName: "Robert Chen",
     claimantEmail: "robert@example.com",

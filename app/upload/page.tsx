@@ -14,7 +14,7 @@ import { Upload, CheckCircle } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
 import { type Item } from "@/lib/mock-data"
-import { getLocations, addItem, updateUser, initializeStorage } from "@/lib/storage"
+import { getLocations, addItem, updateUser, initializeStorage, getSystemSettings } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 import { addAuditLog } from "@/lib/audit-logger"
 import { BackButton } from "@/components/back-button"
@@ -146,7 +146,6 @@ export default function UploadPage() {
       status: "available",
       uploadedBy: sanitizeInput(user.name),
       donationDeadline: (() => {
-        const { getSystemSettings } = require("@/lib/storage")
         const settings = getSystemSettings()
         const foundDate = new Date(dateFound)
         const deadline = new Date(foundDate)

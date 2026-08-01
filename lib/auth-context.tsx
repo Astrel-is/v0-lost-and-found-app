@@ -49,7 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionTimeoutRef.current = setTimeout(() => {
       setUser(null)
       setIsAuthenticated(false)
-      sessionStorage.removeItem("accessToken")
       sessionStorage.removeItem("userId")
       sessionStorage.removeItem("user")
       router.push("/")
@@ -59,45 +58,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Single useEffect for initialization - runs only on mount
   useEffect(() => {
-    // Check for stored user session from database-backed API
-    const storedSessionToken = sessionStorage.getItem("accessToken")
-    const storedUserId = sessionStorage.getItem("userId")
-    
-    if (storedSessionToken && storedUserId) {
+    // Apply theme preference
+    const theme = localStorage.getItem("theme") || "system"
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark")
+    } else if (theme === "light") {
+      document.documentElement.classList.remove("dark")
+    } else if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+      document.documentElement.classList.toggle("dark", systemTheme === "dark")
+    }
+
+    // Optimistically restore the cached user object for instant UI, then validate
+    // the session server-side against the httpOnly cookie (no token in storage).
+    const cachedUser = sessionStorage.getItem("user")
+    if (cachedUser) {
       try {
-        // Session exists from previous login via database auth API
-        // The session token is just a marker; actual auth is via API
+        setUser(JSON.parse(cachedUser) as User)
         setIsAuthenticated(true)
-        const storedUserJson = sessionStorage.getItem("user")
-        if (storedUserJson) {
-          setUser(JSON.parse(storedUserJson) as User)
-        }
-        resetSessionTimeout()
-        
-        // Apply theme preference
-        const theme = localStorage.getItem("theme") || "system"
-        if (theme === "dark") {
-          document.documentElement.classList.add("dark")
-        } else if (theme === "light") {
-          document.documentElement.classList.remove("dark")
-        } else if (theme === "system") {
-          const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-          document.documentElement.classList.toggle("dark", systemTheme === "dark")
-        }
-      } catch (error) {
-        console.error("[Security] Session validation failed:", error)
-        sessionStorage.removeItem("accessToken")
-        sessionStorage.removeItem("userId")
+      } catch {
         sessionStorage.removeItem("user")
       }
     }
+
+    let cancelled = false
+    fetch("/api/auth/me", {
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("unauthorized"))))
+      .then((data) => {
+        if (cancelled) return
+        if (data?.user) {
+          setUser(data.user)
+          sessionStorage.setItem("user", JSON.stringify(data.user))
+          sessionStorage.setItem("userId", data.user.id)
+          setIsAuthenticated(true)
+          resetSessionTimeout()
+        } else {
+          throw new Error("no user in response")
+        }
+      })
+      .catch(() => {
+        if (cancelled) return
+        setUser(null)
+        setIsAuthenticated(false)
+        sessionStorage.removeItem("user")
+        sessionStorage.removeItem("userId")
+      })
 
     // Activity listener for session timeout reset
     const handleUserActivity = () => resetSessionTimeout()
     window.addEventListener("mousedown", handleUserActivity)
     window.addEventListener("keydown", handleUserActivity)
-    
+
     return () => {
+      cancelled = true
       window.removeEventListener("mousedown", handleUserActivity)
       window.removeEventListener("keydown", handleUserActivity)
       if (sessionTimeoutRef.current) clearTimeout(sessionTimeoutRef.current)
@@ -131,18 +147,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json()
       const foundUser = data.user
-      const accessToken: string | undefined = data.accessToken
 
-      if (!accessToken) {
-        console.error("[Security] Missing accessToken in login response")
+      if (!foundUser) {
+        console.error("[Security] Missing user in login response")
         return false
       }
       
       setUser(foundUser)
       setIsAuthenticated(true)
       
-      // Store access token (cleared on inactivity/logout)
-      sessionStorage.setItem("accessToken", accessToken)
+      // Session is carried by the httpOnly `auth_token` cookie set by the server.
+      // Only the (non-secret) user profile is cached for instant UI.
       sessionStorage.setItem("userId", foundUser.id)
       sessionStorage.setItem("user", JSON.stringify(foundUser))
       sessionStorage.removeItem("loginAttempts")
@@ -171,9 +186,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       addAuditLog("logout", "User logged out", user.id, user.name, `User '${user.username}' logged out`, "info")
     }
+    // Clear the httpOnly session cookie server-side.
+    try {
+      fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {})
+    } catch {
+      /* ignore network errors during logout */
+    }
     setUser(null)
     setIsAuthenticated(false)
-    sessionStorage.removeItem("accessToken")
     sessionStorage.removeItem("userId")
     sessionStorage.removeItem("user")
     sessionStorage.removeItem("loginAttempts")
@@ -185,15 +205,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return false
 
     try {
-      const accessToken = sessionStorage.getItem("accessToken")
-      if (!accessToken) return false
-
+      // Auth comes from the httpOnly session cookie.
       const response = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
+        credentials: "same-origin",
         body: JSON.stringify({
           currentPassword,
           newPassword,

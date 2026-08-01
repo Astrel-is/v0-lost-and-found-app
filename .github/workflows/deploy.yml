@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  deployments: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    # Skip until the Vercel secrets are configured (see steps below).
+    if: ${{ secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Migrations against the production database. Runs first so the schema is
+      # up to date before the new code goes live. Optional: the step is skipped
+      # until a PROD_DATABASE_URL secret is added.
+      - name: Run production migrations
+        if: ${{ secrets.PROD_DATABASE_URL != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: pnpm exec prisma migrate deploy
+
+      - name: Deploy to Vercel
+        uses: vercel/actions/deploy@v1
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          production: ${{ github.event_name == 'push' }}
+          github-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN       – Vercel account token (https://vercel.com/account/tokens)
+#   VERCEL_ORG_ID      – your Vercel team id (run `vercel teams ls`)
+#   VERCEL_PROJECT_ID  – project id (run `vercel project ls` inside the project)
+#   PROD_DATABASE_URL  – optional; production Postgres URL for `prisma migrate deploy`
+#   JWT_SECRET         – production JWT signing secret

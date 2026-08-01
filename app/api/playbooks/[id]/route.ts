@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db"
 import { requireAdmin } from "@/lib/auth-middleware"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { validateRouteId } from "@/lib/security"
+import { updatePlaybookSchema, validateAndSanitize } from "@/lib/validation"
 
 // PATCH update playbook (admin only)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +29,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: idValidation.error || "Invalid ID format" }, { status: 400 })
     }
     
-    const { title, scenario, protocol, priority } = await request.json()
+    const body = await request.json()
+    const validation = validateAndSanitize(updatePlaybookSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    const { title, scenario, protocol, priority } = validation.data
     const actorId = authResult.user.id
 
     const playbook = await prisma.playbook.findUnique({

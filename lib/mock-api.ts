@@ -1,12 +1,13 @@
 // Mock API service for when database is disconnected
 // Returns mock data that matches the Prisma schema structure
+// NOTE: This is dead/unreachable fallback code. No real credentials are stored here.
 
 export const mockUsers = [
   {
     id: "1",
     username: "admin",
     name: "Admin User",
-    password: "admin123",
+    password: "<bootstrap-password>",
     role: "admin",
     vaultPoints: 1000,
     rank: 1,
@@ -128,7 +129,7 @@ export const mockItems = [
   {
     id: "1",
     title: "Black Leather Wallet",
-    imageUrl: "/black-leather-wallet.png",
+    imageUrl: "/black-leather-wallet.webp",
     category: "accessories",
     color: "black",
     location: "main-desk",
@@ -160,7 +161,7 @@ export const mockItems = [
   {
     id: "3",
     title: "Silver Wristwatch",
-    imageUrl: "/silver-wristwatch.png",
+    imageUrl: "/silver-wristwatch.webp",
     category: "accessories",
     color: "silver",
     location: "main-desk",

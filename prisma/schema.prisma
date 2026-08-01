@@ -22,6 +22,7 @@ model User {
   rank            Int      @default(0)
   attendanceCount Int      @default(0)
   serviceCount    Int      @default(0)
+  tokenVersion    Int      @default(0) // Bumped on password change to revoke existing sessions
   
   // Relations
   uploadedItems   Item[]

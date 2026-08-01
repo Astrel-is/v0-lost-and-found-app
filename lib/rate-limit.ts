@@ -123,14 +123,15 @@ async function rateLimitShared(
 
   if (!row || row.length === 0 || row[0].resetTime < now) {
     // New window
+    const newResetTime = now + options.windowMs
     await prisma.$executeRaw`
       INSERT INTO rate_limit_counters (rate_key, count, reset_time)
-      VALUES (${identifier}, 1, ${resetTime})
+      VALUES (${identifier}, 1, ${newResetTime})
       ON CONFLICT(rate_key) DO UPDATE SET
         count = 1,
-        reset_time = ${resetTime}
+        reset_time = ${newResetTime}
     `
-    return { allowed: true, remaining: options.maxRequests - 1, resetTime }
+    return { allowed: true, remaining: options.maxRequests - 1, resetTime: newResetTime }
   }
 
   // Existing window: increment
@@ -149,8 +150,10 @@ async function rateLimitShared(
     LIMIT 1
   `) as Array<{ count: number; resetTime: number }>
 
-  const count = updated?.[0]?.count ?? 1
-  const sharedResetTime = updated?.[0]?.resetTime ?? resetTime
+  const count = Number(updated?.[0]?.count ?? 1)
+  // reset_time is stored as BIGINT and may come back as a BigInt value;
+  // normalize to a plain number so callers can use it in `new Date(...)`.
+  const sharedResetTime = Number(updated?.[0]?.resetTime ?? resetTime)
 
   const allowed = count <= options.maxRequests
   return {

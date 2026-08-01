@@ -55,9 +55,17 @@ async function run() {
   console.log("security-noauth-regression: PASS")
 }
 
-run().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error("security-noauth-regression: FAIL", err)
-  process.exit(1)
-})
+run()
+  .then(() => {
+    // eslint-disable-next-line no-console
+    console.log("security-noauth-regression: PASS")
+    // Exit explicitly: the imported route modules initialize PrismaClient,
+    // whose connection keeps the event loop alive.
+    process.exit(0)
+  })
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error("security-noauth-regression: FAIL", err)
+    process.exit(1)
+  })
 

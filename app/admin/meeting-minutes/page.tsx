@@ -1050,7 +1050,7 @@ export default function AdminMeetingMinutesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Meeting Minutes</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete the meeting minutes "{itemToDelete?.title}"? This action cannot be undone.
+                Are you sure you want to delete the meeting minutes &quot;{itemToDelete?.title}&quot;? This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

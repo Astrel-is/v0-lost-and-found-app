@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
-import { requireAdmin } from "@/lib/auth-middleware"
+import { requireAdmin, requireAdminOrVolunteer } from "@/lib/auth-middleware"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { createPlaybookSchema, validateAndSanitize } from "@/lib/validation"
 
-// GET all playbooks
-export async function GET() {
+// GET all playbooks (authenticated only - contains internal security procedures)
+export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireAdminOrVolunteer(request)
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const playbooks = await prisma.playbook.findMany({
       orderBy: { updatedAt: "desc" },
     })

@@ -118,7 +118,7 @@ export default function HomePage() {
               <Link key={item.id} href={`/items/${item.id}`}>
                 <Card className={`overflow-hidden bg-white/[0.03] border-white/10 transition-all hover:shadow-lg hover:bg-white/[0.06] animate-cinematic-slide-up delay-${(i + 1) * 100}`}>
                   <div className="relative aspect-square bg-zinc-800/50">
-                    <Image src={item.imageUrl || "/placeholder.svg"} alt={item.category} fill className="object-cover" />
+                    <Image src={item.imageUrl || "/placeholder.svg"} alt={`${item.category} found item`} fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 25vw, 320px" className="object-cover" />
                   </div>
                   <div className="p-4">
                     <div className="mb-2 flex items-center justify-between">

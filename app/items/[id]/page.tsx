@@ -52,7 +52,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           <div className="space-y-4">
             <Card className="overflow-hidden">
               <div className="relative aspect-square bg-muted">
-                <Image src={item.imageUrl || "/placeholder.svg"} alt={item.category} fill className="object-cover" />
+                <Image src={item.imageUrl || "/placeholder.svg"} alt={`${item.category} lost item photo`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
               </div>
             </Card>
             <p className="text-sm text-muted-foreground">Uploaded by {item.uploadedBy}</p>

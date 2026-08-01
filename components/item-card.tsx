@@ -33,8 +33,9 @@ export function ItemCard({
       <div className="relative aspect-square overflow-hidden bg-muted">
         <Image
           src={imageUrl || "/placeholder.svg"}
-          alt={category}
+          alt={`${category}${color ? ` in ${color}` : ""} found item`}
           fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 25vw, 320px"
           className="object-cover transition-transform group-hover:scale-105"
         />
       </div>

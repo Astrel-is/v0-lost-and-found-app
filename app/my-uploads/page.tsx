@@ -44,7 +44,7 @@ export default function MyUploadsPage() {
             <BackButton fallbackHref="/dashboard" />
           </div>
           <h1 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground">My Uploads</h1>
-          <p className="text-muted-foreground">Items you've found and uploaded to the system</p>
+          <p className="text-muted-foreground">Items you&apos;ve found and uploaded to the system</p>
         </div>
 
         <div className="space-y-4">
@@ -91,7 +91,7 @@ export default function MyUploadsPage() {
 
           {userUploads.length === 0 && (
             <Card className="p-12 text-center">
-              <p className="mb-4 text-muted-foreground">You haven't uploaded any items yet</p>
+              <p className="mb-4 text-muted-foreground">You haven&apos;t uploaded any items yet</p>
               <Link href="/upload">
                 <Button>Upload Found Item</Button>
               </Link>

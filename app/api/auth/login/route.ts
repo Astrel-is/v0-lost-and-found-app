@@ -4,9 +4,15 @@ import { comparePassword } from "@/lib/db"
 import { loginSchema, validateAndSanitize } from "@/lib/validation"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { signAccessToken } from "@/lib/jwt"
+import { assertSameOrigin } from "@/lib/security"
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF: only accept login attempts originating from this site.
+    if (!assertSameOrigin(request)) {
+      return NextResponse.json({ error: "Forbidden - Cross-site request rejected" }, { status: 403 })
+    }
+
     // Rate limiting - stricter for login (5 attempts per minute)
     const clientId = getClientIdentifier(request)
     const rateLimitResult = await rateLimit(clientId, { windowMs: 60000, maxRequests: 5 })
@@ -80,12 +86,14 @@ export async function POST(request: NextRequest) {
         role: user.role,
         username: user.username,
         name: user.name,
+        tokenVersion: user.tokenVersion,
       })
 
-      return NextResponse.json(
+      // The access token is delivered ONLY via an httpOnly cookie so it can never be
+      // read or stored by client-side JavaScript (mitigates token theft via XSS).
+      const response = NextResponse.json(
         {
           user: userWithoutPassword,
-          accessToken,
           message: "Login successful",
         },
         {
@@ -96,6 +104,16 @@ export async function POST(request: NextRequest) {
           },
         }
       )
+
+      response.cookies.set("auth_token", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 8, // 8 hours
+      })
+
+      return response
     } catch (dbError) {
       console.error("[v0] Database error during login:", dbError)
       return NextResponse.json(

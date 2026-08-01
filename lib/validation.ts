@@ -59,9 +59,6 @@ export const createItemSchema = z.object({
   uniqueMarkings: z.string().max(500).trim().refine((val) => !val || !val.includes(".."), {
     message: "Unique markings contains invalid characters",
   }).optional(),
-  uploadedById: z.string().min(1).refine((val) => /^c[a-z0-9]{24}$/i.test(val) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val), {
-    message: "Invalid user ID format",
-  }),
 })
 
 export const updateItemSchema = z.object({
