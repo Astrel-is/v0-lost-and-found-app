@@ -25,7 +25,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (username: string, password: string) => Promise<boolean>
+  login: (username: string, password: string, opts?: { redirect?: boolean }) => Promise<boolean>
   logout: () => void
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>
   isAuthenticated: boolean
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [resetSessionTimeout])
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string, opts?: { redirect?: boolean }): Promise<boolean> => {
     // Sanitize inputs
     const sanitizedUsername = sanitizeSearchQuery(username)
     
@@ -167,13 +167,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Add audit log
       addAuditLog("login", "User logged in", foundUser.id, foundUser.name, `User '${foundUser.username}' logged in`, "info")
 
-      // Route based on role
-      if (foundUser.role === "admin") {
-        router.push("/admin")
-      } else if (foundUser.role === "volunteer") {
-        router.push("/volunteer/dashboard")
-      } else {
-        router.push("/dashboard")
+      // Route based on role. Set `opts.redirect: false` to let the caller play
+      // its own cinematic transition before navigating (used by the login page).
+      if (opts?.redirect !== false) {
+        if (foundUser.role === "admin") {
+          router.push("/admin")
+        } else if (foundUser.role === "volunteer") {
+          router.push("/volunteer/dashboard")
+        } else {
+          router.push("/dashboard")
+        }
       }
       return true
     } catch (error) {

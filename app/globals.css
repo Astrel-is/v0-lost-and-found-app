@@ -255,6 +255,55 @@
   animation: vault-light-sweep 3s ease-in-out infinite;
 }
 
+/* Vault cinematic login extras */
+@keyframes cinematic-star-drift {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  15% { opacity: var(--star-opacity, 0.5); }
+  85% { opacity: var(--star-opacity, 0.5); }
+  100% { transform: translate3d(var(--drift-x, 20px), var(--drift-y, -50vh), 0); opacity: 0; }
+}
+
+@keyframes cinematic-aurora {
+  0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  33% { transform: translate(-40%, -58%) scale(1.2) rotate(55deg); }
+  66% { transform: translate(-60%, -42%) scale(0.9) rotate(110deg); }
+}
+
+@keyframes cinematic-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-9px); }
+  30% { transform: translateX(8px); }
+  45% { transform: translateX(-6px); }
+  60% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+}
+
+@keyframes cinematic-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes cinematic-scan-sweep {
+  0% { top: -10%; opacity: 0; }
+  8% { opacity: 0.6; }
+  92% { opacity: 0.6; }
+  100% { top: 110%; opacity: 0; }
+}
+
+@keyframes cinematic-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.55; }
+  94% { opacity: 1; }
+  97% { opacity: 0.8; }
+}
+
+.animate-cinematic-shake { animation: cinematic-shake 0.5s ease-in-out; }
+.animate-cinematic-blink { animation: cinematic-blink 1s step-end infinite; }
+.animate-cinematic-scan-sweep { animation: cinematic-scan-sweep 7s linear infinite; }
+.animate-cinematic-flicker { animation: cinematic-flicker 6s linear infinite; }
+
+
 /* Staggered animation delays */
 .delay-100 { animation-delay: 100ms; }
 .delay-200 { animation-delay: 200ms; }
