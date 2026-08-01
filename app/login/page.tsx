@@ -203,13 +203,6 @@ export default function LoginPage() {
         style={{ background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 100%)" }}
       />
 
-      {/* HUD — top left */}
-      <div className="animate-cinematic-flicker absolute left-4 top-4 z-10 font-mono text-[10px] tracking-widest text-slate-500 select-none dark:text-slate-500">
-        <span className="text-green-600/80 dark:text-green-400/80">SYS</span>
-        {" // VAULT-01"}
-        <span className="ml-1 inline-block h-3 w-[7px] align-middle bg-slate-400 animate-cinematic-blink" />
-      </div>
-
       {/* Theme toggle */}
       <div className="absolute right-4 top-4 z-10">
         <ThemeToggle />
