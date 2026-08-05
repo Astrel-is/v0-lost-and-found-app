@@ -1,0 +1,166 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { NextRequest, NextResponse } from "next/server"
+
+import { prisma, hashPassword } from "../lib/db"
+import { signAccessToken } from "../lib/jwt"
+import * as usersRoute from "../app/api/users/route"
+import * as itemsRoute from "../app/api/items/route"
+
+// Endpoint-level role authorization tests against the real dev database. Users
+// are created for the test and removed afterwards, so the suite is self-contained.
+
+const GOOD_SECRET = "authz-test-secret-4f6a91d2c3e5b7a8d0f1e2b3c4d5e6f7"
+const ORIGINAL_SECRET = process.env.JWT_SECRET
+const SUFFIX = Date.now().toString(36)
+
+const names = {
+  admin: `authz_admin_${SUFFIX}`,
+  volunteer: `authz_volunteer_${SUFFIX}`,
+  user: `authz_user_${SUFFIX}`,
+  apiCreated: `authz_api_${SUFFIX}`,
+}
+
+interface TestUser {
+  id: string
+  username: string
+  name: string
+  role: string
+  tokenVersion: number
+}
+
+const users: Record<string, TestUser> = {}
+let createdByApi: TestUser | null = null
+
+async function createUser(username: string, role: string): Promise<TestUser> {
+  const password = await hashPassword("Str0ng!Passw0rd")
+  const row = await prisma.user.upsert({
+    where: { username },
+    update: { role },
+    create: { name: username, username, password, role },
+  })
+  return { id: row.id, username: row.username, name: row.name, role: row.role, tokenVersion: row.tokenVersion }
+}
+
+function cookieRequest(url: string, opts: { token?: string; origin?: string; method?: string; body?: unknown }) {
+  const headers = new Headers()
+  if (opts.token) headers.set("cookie", `auth_token=${opts.token}`)
+  if (opts.origin) headers.set("origin", opts.origin)
+  if (opts.body !== undefined) headers.set("content-type", "application/json")
+  return new NextRequest(url, {
+    method: opts.method ?? "GET",
+    headers,
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+  })
+}
+
+function tokenFor(user: TestUser, tokenVersionOverride?: number) {
+  return signAccessToken({
+    sub: user.id,
+    role: user.role,
+    username: user.username,
+    name: user.name,
+    tokenVersion: tokenVersionOverride ?? user.tokenVersion,
+  })
+}
+
+describe("endpoint role authorization (real DB)", () => {
+  beforeAll(async () => {
+    process.env.JWT_SECRET = GOOD_SECRET
+    users.admin = await createUser(names.admin, "admin")
+    users.volunteer = await createUser(names.volunteer, "volunteer")
+    users.user = await createUser(names.user, "user")
+  })
+
+  it("GET /api/items is public (no session required)", async () => {
+    const res = (await itemsRoute.GET(cookieRequest("http://localhost/api/items", {}))) as NextResponse
+    expect(res.status).toBe(200)
+  })
+
+  it("GET /api/users requires a session (401 without)", async () => {
+    const res = (await usersRoute.GET(cookieRequest("http://localhost/api/users", {}))) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("GET /api/users rejects a plain user (403)", async () => {
+    const res = (await usersRoute.GET(
+      cookieRequest("http://localhost/api/users", { token: tokenFor(users.user) })
+    )) as NextResponse
+    expect(res.status).toBe(403)
+  })
+
+  it("GET /api/users rejects a volunteer (403)", async () => {
+    const res = (await usersRoute.GET(
+      cookieRequest("http://localhost/api/users", { token: tokenFor(users.volunteer) })
+    )) as NextResponse
+    expect(res.status).toBe(403)
+  })
+
+  it("GET /api/users allows an admin (200)", async () => {
+    const res = (await usersRoute.GET(
+      cookieRequest("http://localhost/api/users", { token: tokenFor(users.admin) })
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body.users)).toBe(true)
+  })
+
+  it("POST /api/users rejects a non-admin before touching the DB", async () => {
+    const res = (await usersRoute.POST(
+      cookieRequest("http://localhost/api/users", {
+        token: tokenFor(users.user),
+        method: "POST",
+        body: { name: "X", username: "x_never_created", password: "Str0ng!Passw0rd", role: "user" },
+      })
+    )) as NextResponse
+    expect(res.status).toBe(403)
+    const created = await prisma.user.findUnique({ where: { username: "x_never_created" } })
+    expect(created).toBeNull()
+  })
+
+  it("POST /api/users allows an admin to create a user", async () => {
+    const res = (await usersRoute.POST(
+      cookieRequest("http://localhost/api/users", {
+        token: tokenFor(users.admin),
+        method: "POST",
+        body: { name: "Api Created", username: names.apiCreated, password: "Str0ng!Passw0rd", role: "user" },
+      })
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    createdByApi = {
+      id: body.user.id,
+      username: body.user.username,
+      name: body.user.name,
+      role: body.user.role,
+      tokenVersion: 0,
+    }
+  })
+
+  it("rejects a session with a stale tokenVersion (revoked)", async () => {
+    const res = (await usersRoute.GET(
+      cookieRequest("http://localhost/api/users", {
+        token: tokenFor(users.admin, users.admin.tokenVersion + 1),
+      })
+    )) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects a forged cross-site origin even for an admin", async () => {
+    const res = (await usersRoute.GET(
+      cookieRequest("http://localhost/api/users", {
+        token: tokenFor(users.admin),
+        origin: "https://evil.example.com",
+      })
+    )) as NextResponse
+    expect(res.status).toBe(403)
+  })
+})
+
+afterAll(async () => {
+  const ids = [...Object.values(users).map((u) => u.id), ...(createdByApi ? [createdByApi.id] : [])]
+  await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } })
+  await prisma.user.deleteMany({ where: { id: { in: ids } } })
+  await prisma.$disconnect()
+  if (ORIGINAL_SECRET === undefined) delete process.env.JWT_SECRET
+  else process.env.JWT_SECRET = ORIGINAL_SECRET
+})

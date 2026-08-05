@@ -1,6 +1,8 @@
-import assert from "node:assert/strict"
+import { afterAll, describe, expect, it } from "vitest"
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
+import { prisma } from "../lib/db"
 import * as itemsRoute from "../app/api/items/route"
 import * as itemByIdRoute from "../app/api/items/[id]/route"
 import * as claimsRoute from "../app/api/claims/route"
@@ -10,62 +12,71 @@ import * as locationByIdRoute from "../app/api/locations/[id]/route"
 import * as usersByIdRoute from "../app/api/users/[id]/route"
 import * as serviceRecordsRoute from "../app/api/service-records/route"
 
-function mockRequest() {
+function mockRequest(): NextRequest {
   const headers = new Headers()
   return {
     headers,
     nextUrl: { searchParams: new URLSearchParams() },
     json: async () => ({}),
-  } as any
+  } as unknown as NextRequest
 }
 
-async function assertStatus(fn: () => Promise<any>, expectedStatus: number) {
-  const res = await fn()
-  // NextResponse.json returns a NextResponse with `.status`.
-  const status = (res as NextResponse).status
-  assert.equal(status, expectedStatus)
-}
-
-async function run() {
+// Every protected mutation must return 401 without a session cookie. If any
+// route handler forgets its requireAuth/requireAdmin guard, this suite fails.
+describe("no-auth regression: protected routes require a session", () => {
   const req = mockRequest()
 
-  // Items (POST /items)
-  await assertStatus(() => itemsRoute.POST(req), 401)
-
-  // Items (PATCH /items/:id, DELETE /items/:id)
-  await assertStatus(() => itemByIdRoute.PATCH(req, { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as any), 401)
-  await assertStatus(() => itemByIdRoute.DELETE(req, { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as any), 401)
-
-  // Claims (POST /claims, PATCH /claims/:id)
-  await assertStatus(() => claimsRoute.POST(req), 401)
-  await assertStatus(() => claimByIdRoute.PATCH(req, { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as any), 401)
-
-  // Locations (POST /locations, PATCH /locations/:id)
-  await assertStatus(() => locationsRoute.POST(req), 401)
-  await assertStatus(() => locationByIdRoute.PATCH(req, { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as any), 401)
-
-  // Users (DELETE /users/:id)
-  await assertStatus(() => usersByIdRoute.DELETE(req, { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as any), 401)
-
-  // Service records (POST /service-records)
-  await assertStatus(() => serviceRecordsRoute.POST(req), 401)
-
-  // If we got here, all assertions passed.
-  // eslint-disable-next-line no-console
-  console.log("security-noauth-regression: PASS")
-}
-
-run()
-  .then(() => {
-    // eslint-disable-next-line no-console
-    console.log("security-noauth-regression: PASS")
-    // Exit explicitly: the imported route modules initialize PrismaClient,
-    // whose connection keeps the event loop alive.
-    process.exit(0)
-  })
-  .catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error("security-noauth-regression: FAIL", err)
-    process.exit(1)
+  it("rejects POST /api/items without auth", async () => {
+    const res = (await itemsRoute.POST(req)) as NextResponse
+    expect(res.status).toBe(401)
   })
 
+  it("rejects PATCH /api/items/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await itemByIdRoute.PATCH(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects DELETE /api/items/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await itemByIdRoute.DELETE(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects POST /api/claims without auth", async () => {
+    const res = (await claimsRoute.POST(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects PATCH /api/claims/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await claimByIdRoute.PATCH(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects POST /api/locations without auth", async () => {
+    const res = (await locationsRoute.POST(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects PATCH /api/locations/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await locationByIdRoute.PATCH(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects DELETE /api/users/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await usersByIdRoute.DELETE(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects POST /api/service-records without auth", async () => {
+    const res = (await serviceRecordsRoute.POST(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+})
+
+afterAll(async () => {
+  await prisma.$disconnect()
+})

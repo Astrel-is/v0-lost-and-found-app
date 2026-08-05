@@ -13,11 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, CheckCircle } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
-import { type Item } from "@/lib/mock-data"
-import { getLocations, addItem, updateUser, initializeStorage, getSystemSettings } from "@/lib/storage"
+import { itemsApi, locationsApi, ApiError, type Location } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
-import { addAuditLog } from "@/lib/audit-logger"
-import { BackButton } from "@/components/back-button"
 import { sanitizeInput, sanitizeUrl, sanitizeTextContent } from "@/lib/client-security"
 
 export default function UploadPage() {
@@ -26,19 +23,25 @@ export default function UploadPage() {
   const { toast } = useToast()
   const [itemImage, setItemImage] = useState<string | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [category, setCategory] = useState("")
   const [color, setColor] = useState("")
   const [location, setLocation] = useState("")
   const [dateFound, setDateFound] = useState(new Date().toISOString().split("T")[0])
   const [description, setDescription] = useState("")
-  const [locations, setLocations] = useState<{ id: string; name: string; description?: string; createdAt: string }[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    initializeStorage()
-    setLocations(getLocations())
-    setIsLoaded(true)
-  }, [])
+    locationsApi
+      .getAll()
+      .then((res) => setLocations(res.locations))
+      .catch((err) => {
+        const message = err instanceof ApiError ? err.message : "Failed to load locations"
+        toast({ title: "Error", description: message, variant: "destructive" })
+      })
+      .finally(() => setIsLoaded(true))
+  }, [toast])
 
   useEffect(() => {
     if (isLoaded && !isAuthenticated) {
@@ -81,7 +84,7 @@ export default function UploadPage() {
         })
         return
       }
-      
+
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
@@ -111,9 +114,9 @@ export default function UploadPage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!itemImage || !category || !location || !dateFound || !user) {
       toast({
         title: "Missing Information",
@@ -123,7 +126,7 @@ export default function UploadPage() {
       return
     }
 
-    // Sanitize all inputs before creating item
+    // Sanitize all inputs before sending (server re-validates)
     const sanitizedImageUrl = sanitizeUrl(itemImage)
     if (!sanitizedImageUrl) {
       toast({
@@ -134,50 +137,30 @@ export default function UploadPage() {
       return
     }
 
-    // Create new item with sanitized data
-    const newItem: Item = {
-      id: `item-${Date.now()}`,
-      imageUrl: sanitizedImageUrl,
-      category: sanitizeInput(category.charAt(0).toUpperCase() + category.slice(1)),
-      color: sanitizeInput(color || "Unknown"),
-      location: sanitizeInput(location),
-      dateFounded: dateFound, // Date is already validated by input type="date"
-      description: sanitizeTextContent(description || ""),
-      status: "available",
-      uploadedBy: sanitizeInput(user.name),
-      donationDeadline: (() => {
-        const settings = getSystemSettings()
-        const foundDate = new Date(dateFound)
-        const deadline = new Date(foundDate)
-        deadline.setDate(deadline.getDate() + settings.itemExpirationDays)
-        return deadline.toISOString().split("T")[0]
-      })(),
-      uniqueMarkings: description ? sanitizeTextContent(description) : undefined,
+    setIsSaving(true)
+    try {
+      await itemsApi.create({
+        imageUrl: sanitizedImageUrl,
+        category: sanitizeInput(category.charAt(0).toUpperCase() + category.slice(1)),
+        color: sanitizeInput(color || "Unknown"),
+        location: sanitizeInput(location),
+        dateFounded: new Date(dateFound).toISOString(),
+        description: sanitizeTextContent(description || ""),
+      })
+
+      // Stats, donation deadline and audit logging are handled server-side.
+      toast({
+        title: "Item Uploaded",
+        description: "Your item has been successfully added to the system.",
+      })
+
+      setIsSubmitted(true)
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to upload item. Please try again."
+      toast({ title: "Upload Failed", description: message, variant: "destructive" })
+    } finally {
+      setIsSaving(false)
     }
-
-    // Add to storage
-    addItem(newItem)
-
-    // Update user stats
-    const currentUser = updateUser(user.id, {
-      itemsUploaded: user.itemsUploaded + 1,
-      vaultPoints: user.vaultPoints + 50, // Award points for uploading
-    })
-    
-    // Update user in context if needed
-    if (currentUser) {
-      // User will be refreshed on next login or page refresh
-    }
-
-    // Add audit log
-    addAuditLog("item_uploaded", "Item uploaded", user.id, user.name, `${newItem.category} uploaded from ${newItem.location}`, "info")
-
-    toast({
-      title: "Item Uploaded",
-      description: "Your item has been successfully added to the system.",
-    })
-
-    setIsSubmitted(true)
   }
 
   if (isSubmitted) {
@@ -330,8 +313,8 @@ export default function UploadPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={!itemImage}>
-                Submit Found Item
+              <Button type="submit" className="w-full" disabled={!itemImage || isSaving}>
+                {isSaving ? "Uploading..." : "Submit Found Item"}
               </Button>
             </form>
           </Card>

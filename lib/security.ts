@@ -107,8 +107,8 @@ export function sanitizePath(input: string): string {
     .replace(/\/\.\./g, "")
     .replace(/\\\.\./g, "")
 
-  // Remove absolute path indicators
-  sanitized = sanitized.replace(/^\/|^[A-Za-z]:\\/, "")
+  // Remove absolute path indicators (all leading slashes, not just the first)
+  sanitized = sanitized.replace(/^\/+/, "").replace(/^[A-Za-z]:\\/, "")
 
   // Remove file:// protocol
   sanitized = sanitized.replace(/^file:\/\//i, "")

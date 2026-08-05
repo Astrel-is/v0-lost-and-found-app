@@ -2,6 +2,38 @@
 
 const API_BASE = "/api"
 
+export type ItemStatus = "available" | "claimed" | "released" | "donated" | "expired"
+
+export interface Item {
+  id: string
+  imageUrl: string
+  category: string
+  color: string
+  location: string
+  dateFounded: string
+  description: string
+  status: ItemStatus
+  donationDeadline: string | null
+  uniqueMarkings: string | null
+  uploadedBy: { id: string; name?: string; username?: string }
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface Location {
+  id: string
+  name: string
+  description?: string | null
+  createdAt?: string
+}
+
+export interface UserListItem {
+  id: string
+  name: string
+  username: string
+  role: string
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message)
@@ -35,7 +67,7 @@ async function fetchApi<T>(
 // Auth API
 export const authApi = {
   login: (username: string, password: string) =>
-    fetchApi<{ user: any; message: string }>("/auth/login", {
+    fetchApi<{ user: UserListItem & { tokenVersion?: number }; message: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
@@ -56,18 +88,18 @@ export const authApi = {
 // Users API
 export const usersApi = {
   getAll: (search?: string) =>
-    fetchApi<{ users: any[] }>(`/users${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+    fetchApi<{ users: UserListItem[] }>(`/users${search ? `?search=${encodeURIComponent(search)}` : ""}`),
 
-  getById: (id: string) => fetchApi<{ user: any }>(`/users/${id}`),
+  getById: (id: string) => fetchApi<{ user: UserListItem }>(`/users/${id}`),
 
   create: (data: { name: string; username: string; password: string; role: string }) =>
-    fetchApi<{ user: any; message: string }>("/users", {
+    fetchApi<{ user: UserListItem; message: string }>("/users", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   update: (id: string, data: Partial<{ name: string; role: string }>) =>
-    fetchApi<{ user: any; message: string }>(`/users/${id}`, {
+    fetchApi<{ user: UserListItem; message: string }>(`/users/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
@@ -80,35 +112,37 @@ export const usersApi = {
 
 // Items API
 export const itemsApi = {
-  getAll: (params?: { search?: string; status?: string; category?: string; location?: string }) => {
+  getAll: (params?: { search?: string; status?: string; category?: string; location?: string; limit?: number }) => {
     const searchParams = new URLSearchParams()
     if (params?.search) searchParams.set("search", params.search)
     if (params?.status) searchParams.set("status", params.status)
     if (params?.category) searchParams.set("category", params.category)
     if (params?.location) searchParams.set("location", params.location)
+    if (params?.limit) searchParams.set("limit", params.limit.toString())
     const query = searchParams.toString()
-    return fetchApi<{ items: any[] }>(`/items${query ? `?${query}` : ""}`)
+    return fetchApi<{ items: Item[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
+      `/items${query ? `?${query}` : ""}`
+    )
   },
 
-  getById: (id: string) => fetchApi<{ item: any }>(`/items/${id}`),
+  getById: (id: string) => fetchApi<{ item: Item }>(`/items/${id}`),
 
   create: (data: {
     imageUrl: string
     category: string
-    color: string
+    color?: string
     location: string
     dateFounded: string
     description?: string
     uniqueMarkings?: string
-    uploadedById: string
   }) =>
-    fetchApi<{ item: any; message: string }>("/items", {
+    fetchApi<{ item: Item; message: string }>("/items", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   update: (id: string, data: Partial<{ status: string; description: string }>) =>
-    fetchApi<{ item: any; message: string }>(`/items/${id}`, {
+    fetchApi<{ item: Item; message: string }>(`/items/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
@@ -151,7 +185,7 @@ export const claimsApi = {
 
 // Locations API
 export const locationsApi = {
-  getAll: () => fetchApi<{ locations: any[] }>("/locations"),
+  getAll: () => fetchApi<{ locations: Location[] }>("/locations"),
 
   create: (data: { name: string; description?: string; userId?: string }) =>
     fetchApi<{ location: any; message: string }>("/locations", {

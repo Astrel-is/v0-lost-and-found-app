@@ -10,9 +10,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Build/test never touch a real database (all pages are client components and
-  # the security regression tests assert unauthenticated 401s). A local SQLite
-  # file is provided so any future prisma step has a valid datasource.
+  # Tests run against an ephemeral local SQLite file created by `prisma migrate
+  # deploy`; no real database is ever touched. Set before install so the adapter
+  # resolves on first import.
   DATABASE_URL: "file:./ci.db"
 
 jobs:
@@ -43,8 +43,31 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Security regression tests (unauthenticated access → 401)
-        run: pnpm test:security
+      # Create the schema for the ephemeral SQLite DB the integration tests use.
+      - name: Prepare test database
+        run: pnpm exec prisma migrate deploy
+
+      # Runs the full suite and enforces the lib/ coverage gate (test:coverage).
+      - name: Test suite + coverage gate
+        run: pnpm test:coverage
+
+  # Blocks PRs that add new high-severity vulnerabilities or unapproved
+  # licenses, while ignoring the pre-existing baseline (lodash advisories have
+  # no patched release). Runs on the PR diff, so it is diff-based by design.
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   build:
     name: Production build

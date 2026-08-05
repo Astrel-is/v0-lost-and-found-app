@@ -21,15 +21,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Migrations against the production database. Runs first so the schema is
-      # up to date before the new code goes live. Optional: the step is skipped
-      # until a PROD_DATABASE_URL secret is added.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Database sync runs before the new code goes live so the schema is always
+      # compatible. Both steps are skipped until the required secrets exist.
       - name: Run production migrations
         if: ${{ secrets.PROD_DATABASE_URL != '' }}
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: pnpm exec prisma migrate deploy
+
+      # Creates/refreshes the bootstrap users (admin, volunteers, users). Seed is
+      # idempotent (upserts) and HARD-FAILS in production if any BOOTSTRAP_*_PASSWORD
+      # is missing, so insecure default passwords can never be written to prod.
+      - name: Seed production bootstrap users
+        if: ${{ secrets.PROD_DATABASE_URL != '' && secrets.BOOTSTRAP_ADMIN_PASSWORD != '' && secrets.BOOTSTRAP_VOLUNTEER_PASSWORD != '' && secrets.BOOTSTRAP_USER_PASSWORD != '' }}
+        env:
+          NODE_ENV: production
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+          BOOTSTRAP_VOLUNTEER_PASSWORD: ${{ secrets.BOOTSTRAP_VOLUNTEER_PASSWORD }}
+          BOOTSTRAP_USER_PASSWORD: ${{ secrets.BOOTSTRAP_USER_PASSWORD }}
+        run: pnpm db:seed
 
       - name: Deploy to Vercel
         uses: vercel/actions/deploy@v1
@@ -42,8 +67,13 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
 # Required repository secrets (Settings → Secrets and variables → Actions):
-#   VERCEL_TOKEN       – Vercel account token (https://vercel.com/account/tokens)
-#   VERCEL_ORG_ID      – your Vercel team id (run `vercel teams ls`)
-#   VERCEL_PROJECT_ID  – project id (run `vercel project ls` inside the project)
-#   PROD_DATABASE_URL  – optional; production Postgres URL for `prisma migrate deploy`
-#   JWT_SECRET         – production JWT signing secret
+#   VERCEL_TOKEN             – Vercel account token (https://vercel.com/account/tokens)
+#   VERCEL_ORG_ID            – your Vercel team id (run `vercel teams ls`)
+#   VERCEL_PROJECT_ID        – project id (run `vercel project ls` inside the project)
+#   PROD_DATABASE_URL        – production Postgres URL (required for migrations/seed)
+#   BOOTSTRAP_ADMIN_PASSWORD – production admin password
+#   BOOTSTRAP_VOLUNTEER_PASSWORD – production volunteer password
+#   BOOTSTRAP_USER_PASSWORD  – production regular-user password
+#
+# Also set in Vercel project environment (not here):
+#   DATABASE_URL, JWT_SECRET, NODE_ENV=production

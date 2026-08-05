@@ -34,12 +34,20 @@ export const changePasswordSchema = z.object({
 export const createItemSchema = z.object({
   imageUrl: z
     .string()
-    .url()
     .max(5000)
     .refine(
       (url) => {
-        // Additional validation for path traversal
-        return !url.includes("..") && !url.startsWith("file://") && !/^\/|^[A-Za-z]:\\/.test(url)
+        if (url.startsWith("data:")) {
+          // Base64-encoded client-side images (png/jpeg/gif/webp).
+          return /^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(url)
+        }
+        // Otherwise must be an http(s) URL without path traversal.
+        return (
+          /^https?:\/\//i.test(url) &&
+          !url.includes("..") &&
+          !url.startsWith("file://") &&
+          !/^\/|^[A-Za-z]:\\/.test(url)
+        )
       },
       { message: "Invalid image URL format" }
     ),
@@ -76,11 +84,18 @@ export const createClaimSchema = z.object({
     }),
   proofImage: z
     .string()
-    .url()
     .max(5000)
     .refine(
       (url) => {
-        return !url.includes("..") && !url.startsWith("file://") && !/^\/|^[A-Za-z]:\\/.test(url)
+        if (url.startsWith("data:")) {
+          return /^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(url)
+        }
+        return (
+          /^https?:\/\//i.test(url) &&
+          !url.includes("..") &&
+          !url.startsWith("file://") &&
+          !/^\/|^[A-Za-z]:\\/.test(url)
+        )
       },
       { message: "Invalid proof image URL format" }
     ),

@@ -8,26 +8,33 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Filter } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { getItems, getLocations, initializeStorage } from "@/lib/storage"
-import { BackButton } from "@/components/back-button"
+import { itemsApi, locationsApi, ApiError, type Item, type Location } from "@/lib/api-client"
+import { useToast } from "@/hooks/use-toast"
 
 export default function BrowsePage() {
-  const { user, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [colorFilter, setColorFilter] = useState("all")
   const [locationFilter, setLocationFilter] = useState("all")
-  const [items, setItems] = useState(getItems())
-  const [locations, setLocations] = useState(getLocations())
+  const [items, setItems] = useState<Item[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    initializeStorage()
-    setItems(getItems())
-    setLocations(getLocations())
-    setIsLoaded(true)
-  }, [])
+    Promise.all([itemsApi.getAll({ limit: 100 }), locationsApi.getAll()])
+      .then(([itemsRes, locationsRes]) => {
+        setItems(itemsRes.items)
+        setLocations(locationsRes.locations)
+      })
+      .catch((err) => {
+        const message = err instanceof ApiError ? err.message : "Failed to load items"
+        toast({ title: "Error", description: message, variant: "destructive" })
+      })
+      .finally(() => setIsLoaded(true))
+  }, [toast])
 
   useEffect(() => {
     if (isLoaded && !isAuthenticated) {

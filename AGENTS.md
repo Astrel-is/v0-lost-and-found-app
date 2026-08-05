@@ -14,11 +14,13 @@ custom JWT auth (no external auth library).
 - `pnpm lint` — ESLint (project has `eslint.config.mjs`; run this, not legacy config)
 - `npx tsc --noEmit` — typecheck
 - `pnpm build` — production build (`prisma generate && next build`)
-- `pnpm test:security` — security regression tests (unauth access must return 401)
+- `pnpm test` — full vitest suite (unit + no-auth regression + role authorization)
+- `pnpm test:security` — no-auth regression only (protected routes return 401)
+- `pnpm test:coverage` — vitest with coverage report (core security libs are the focus)
 - `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed` / `pnpm db:studio`
 - `bash start.sh` — full local setup (install, reset DB, seed, dev server)
 
-After any change, run `pnpm lint`, `npx tsc --noEmit`, and `pnpm test:security`.
+After any change, run `pnpm lint`, `npx tsc --noEmit`, and `pnpm test`.
 
 ## Architecture
 
@@ -81,16 +83,34 @@ The **DB-backed API under `app/api/*` is authoritative, secure, and the source o
 
 ## Testing
 
+- Vitest is the runner (`pnpm test`); config lives in `vitest.config.ts` (loads `.env` via
+  `vitest.setup.ts`, resolves the `@/` alias, runs files sequentially so integration tests don't
+  contend on the shared SQLite `dev.db`).
 - `tests/security-noauth-regression.test.ts` asserts every protected route returns 401 without a
-  session. It imports route handlers directly and ends with `process.exit(0)` (required because
-  PrismaClient keeps the event loop alive).
+  session (imports route handlers directly; PrismaClient is disconnected in `afterAll`).
+- `tests/authz-regression.test.ts` covers the role matrix against the real DB with throwaway users
+  (created in `beforeAll`, removed in `afterAll`).
+- `tests/unit/` covers the security-critical libs: `jwt.ts`, `auth-middleware.ts`, `validation.ts`,
+  `security.ts`, `rate-limit.ts`, `db.ts` (`auth-middleware` mocks `lib/db`; `rate-limit` mocks it to
+  null to force the in-memory path).
+- Always set `process.env.JWT_SECRET` in tests that sign/verify tokens; never reuse the value from
+  `.env` in test expectations.
 - Add role-based authorization tests when covering new endpoints.
+- `pnpm test:coverage` enforces thresholds on `lib/` (85% stmts/lines, 80% branches, 75% funcs);
+  client/mock layers are excluded from the gate. Don't let coverage regress below the threshold.
 
 ## CI/CD
 
-- CI (`.github/workflows/ci.yml`): lint, typecheck, `pnpm test:security`, production build.
-- CD (`.github/workflows/deploy.yml`): Vercel preview on PRs, production on `main`. Requires the
-  `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` secrets before it activates.
+- CI (`.github/workflows/ci.yml`): lint, typecheck, prepare the ephemeral `ci.db` via
+  `prisma migrate deploy`, `pnpm test:coverage` (full suite + coverage gate), dependency review on
+  PRs (`fail-on-severity: high`), production build.
+- CodeQL (`.github/workflows/codeql.yml`): semantic JS/TS scanning on PRs, `main`, and weekly.
+- Known baseline: `pnpm audit` reports a few `lodash` advisories (dev-tooling transitive dep, no
+  patched release). Do not add new high/critical vulnerabilities via PRs (dependency review blocks).
+- CD (`.github/workflows/deploy.yml`): Vercel preview on PRs, production on `main`; applies
+  `prisma migrate deploy` + seed against `PROD_DATABASE_URL` before each deploy. Requires the
+  `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `PROD_DATABASE_URL`, and
+  `BOOTSTRAP_*_PASSWORD` secrets before it activates.
 
 ## Style
 
