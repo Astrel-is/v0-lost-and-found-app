@@ -29,7 +29,6 @@ export default defineConfig({
         "lib/audit-logger.ts",
         "lib/auth-context.tsx",
         "lib/client-security.ts",
-        "lib/system-checks.ts",
       ],
       reporter: ["text", "html"],
       thresholds: {

@@ -73,7 +73,14 @@ The **DB-backed API under `app/api/*` is authoritative, secure, and the source o
 
 ## Database & migrations
 
-- Dev DB is SQLite (`prisma/dev.db`, gitignored). Production is Postgres via `DATABASE_URL`.
+- Dev DB is SQLite (`dev.db` at repo root, gitignored).
+- ⚠️ **Known gap: the app is SQLite-only right now.** `prisma/schema.prisma` hardcodes
+  `provider = "sqlite"` and `lib/prisma.ts` always uses the better-sqlite3 adapter, so the documented
+  "production Postgres via `DATABASE_URL`" does not actually work. A Postgres `DATABASE_URL` will fail
+  `prisma migrate deploy` (provider mismatch). Making Postgres work requires: an env-driven `provider`
+  in the schema, adapter selection by env in `lib/prisma.ts` (the Neon adapter is installed but unused),
+  and a Postgres-generated migration history. Until then, treat the Vercel deploy's `prisma migrate
+  deploy` + seed as SQLite-only, and add a Postgres CI smoke test once the provider is env-driven.
 - Schema changes: update `prisma/schema.prisma`, run `pnpm db:migrate` (dev). If the migration
   history drifts from the DB (e.g. a runtime table like `rate_limit_counters`), `start.sh` resets
   the dev DB — that is expected.
@@ -116,3 +123,13 @@ The **DB-backed API under `app/api/*` is authoritative, secure, and the source o
 
 - Match the existing code conventions (structure, naming, import order).
 - Do not add comments unless they clarify non-obvious security/correctness logic.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

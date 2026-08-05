@@ -163,15 +163,15 @@ async function rateLimitShared(
   }
 }
 
-// Get client identifier from request
+// Get client identifier from request.
+// Keys on the session user id when a valid auth_token cookie is present so a
+// shared IP (e.g. the whole church office behind NAT) isn't throttled as one
+// actor; otherwise falls back to the client IP.
 export function getClientIdentifier(request: NextRequest): string {
-  // Try to get user ID from auth header first
-  const authHeader = request.headers.get("authorization")
-  if (authHeader) {
-    const token = authHeader.substring(7).trim()
+  const token = request.cookies?.get("auth_token")?.value
+  if (token) {
     const payload = verifyAccessToken(token)
     if (payload?.sub) return `user:${payload.sub}`
-    return `user:${token}`
   }
 
   // Fall back to IP address

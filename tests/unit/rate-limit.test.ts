@@ -62,11 +62,27 @@ describe("rateLimit (in-memory path)", () => {
 })
 
 describe("getClientIdentifier", () => {
-  function makeRequest(headers: Record<string, string>): NextRequest {
-    return { headers: new Headers(headers) } as unknown as NextRequest
+  function makeRequest(headers: Record<string, string>, cookies?: Record<string, string>): NextRequest {
+    return {
+      headers: new Headers(headers),
+      cookies: {
+        get: (name: string) => (cookies && cookies[name] !== undefined ? { value: cookies[name] } : undefined),
+      },
+    } as unknown as NextRequest
   }
 
-  it("keys on x-forwarded-for IP when no token is present", () => {
+  it("keys on the user id from a valid session cookie", () => {
+    const token = signAccessToken({ sub: "c123456789012345678901234", role: "user", username: "u", name: "U", tokenVersion: 0 })
+    const id = getClientIdentifier(makeRequest({}, { auth_token: token }))
+    expect(id).toBe("user:c123456789012345678901234")
+  })
+
+  it("ignores an invalid session cookie and falls back to IP", () => {
+    const id = getClientIdentifier(makeRequest({ "x-forwarded-for": "203.0.113.9" }, { auth_token: "garbage" }))
+    expect(id).toBe("ip:203.0.113.9")
+  })
+
+  it("keys on x-forwarded-for IP when no session is present", () => {
     const id = getClientIdentifier(makeRequest({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" }))
     expect(id).toBe("ip:203.0.113.9")
   })
@@ -79,11 +95,5 @@ describe("getClientIdentifier", () => {
   it("falls back to unknown when no IP headers exist", () => {
     const id = getClientIdentifier(makeRequest({}))
     expect(id).toBe("ip:unknown")
-  })
-
-  it("keys on the user id for a valid legacy Bearer token", () => {
-    const token = signAccessToken({ sub: "c123456789012345678901234", role: "user", username: "u", name: "U", tokenVersion: 0 })
-    const id = getClientIdentifier(makeRequest({ authorization: `Bearer ${token}` }))
-    expect(id).toBe("user:c123456789012345678901234")
   })
 })
