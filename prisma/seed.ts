@@ -11,7 +11,7 @@ async function main() {
   const adminPassword = await bcrypt.hash("SecureAdmin123!", 10)
   const admin = await prisma.user.upsert({
     where: { username: "admin" },
-    update: {},
+    update: { password: adminPassword },
     create: {
       name: "System Administrator",
       username: "admin",
@@ -31,7 +31,7 @@ async function main() {
   const volunteerPassword = await bcrypt.hash("VolunteerPass123!", 10)
   const volunteer = await prisma.user.upsert({
     where: { username: "tomanderson" },
-    update: {},
+    update: { password: volunteerPassword },
     create: {
       name: "Tom Anderson - Volunteer Coordinator",
       username: "tomanderson",
@@ -52,7 +52,7 @@ async function main() {
 
   const user1 = await prisma.user.upsert({
     where: { username: "johndoe" },
-    update: {},
+    update: { password: userPassword },
     create: {
       name: "John Doe",
       username: "johndoe",
@@ -69,7 +69,7 @@ async function main() {
 
   const user2 = await prisma.user.upsert({
     where: { username: "sarahjohnson" },
-    update: {},
+    update: { password: userPassword },
     create: {
       name: "Sarah Johnson",
       username: "sarahjohnson",
@@ -86,7 +86,7 @@ async function main() {
 
   const user3 = await prisma.user.upsert({
     where: { username: "michaelchen" },
-    update: {},
+    update: { password: userPassword },
     create: {
       name: "Michael Chen",
       username: "michaelchen",
@@ -103,7 +103,7 @@ async function main() {
 
   const user4 = await prisma.user.upsert({
     where: { username: "davidpark" },
-    update: {},
+    update: { password: userPassword },
     create: {
       name: "David Park",
       username: "davidpark",
@@ -123,7 +123,7 @@ async function main() {
   
   const volunteer2 = await prisma.user.upsert({
     where: { username: "emilyrodriguez" },
-    update: {},
+    update: { password: volunteerPassword2 },
     create: {
       name: "Emily Rodriguez",
       username: "emilyrodriguez",
@@ -140,7 +140,7 @@ async function main() {
 
   const volunteer3 = await prisma.user.upsert({
     where: { username: "jenniferwilliams" },
-    update: {},
+    update: { password: volunteerPassword2 },
     create: {
       name: "Jennifer Williams",
       username: "jenniferwilliams",
