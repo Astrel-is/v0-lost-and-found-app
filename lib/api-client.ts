@@ -281,3 +281,14 @@ export const releaseLogsApi = {
   getAll: (search?: string) =>
     fetchApi<{ logs: any[] }>(`/release-logs${search ? `?search=${encodeURIComponent(search)}` : ""}`),
 }
+
+// Orders API
+export const ordersApi = {
+  getAll: () => fetchApi<{ orders: any[] }>("/orders"),
+
+  markRead: (id: string) =>
+    fetchApi<{ order: any; message: string }>(`/orders/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "read" }),
+    }),
+}

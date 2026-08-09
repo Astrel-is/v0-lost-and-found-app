@@ -5,6 +5,8 @@ import { prisma, hashPassword } from "../lib/db"
 import { signAccessToken } from "../lib/jwt"
 import * as usersRoute from "../app/api/users/route"
 import * as itemsRoute from "../app/api/items/route"
+import * as ordersRoute from "../app/api/orders/route"
+import * as orderByIdRoute from "../app/api/orders/[id]/route"
 
 // Endpoint-level role authorization tests against the real dev database. Users
 // are created for the test and removed afterwards, so the suite is self-contained.
@@ -153,6 +155,62 @@ describe("endpoint role authorization (real DB)", () => {
       })
     )) as NextResponse
     expect(res.status).toBe(403)
+  })
+
+  it("GET /api/orders requires a session (401 without)", async () => {
+    const res = (await ordersRoute.GET(cookieRequest("http://localhost/api/orders", {}))) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("GET /api/orders returns only the caller's orders for a regular user", async () => {
+    const orderA = await prisma.order.create({ data: { title: "For user", message: "m", userId: users.user.id } })
+    await prisma.order.create({ data: { title: "For admin", message: "m", userId: users.admin.id } })
+
+    const res = (await ordersRoute.GET(
+      cookieRequest("http://localhost/api/orders", { token: tokenFor(users.user) })
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    const titles = body.orders.map((o: { title: string }) => o.title)
+    expect(titles).toContain("For user")
+    expect(titles).not.toContain("For admin")
+
+    await prisma.order.delete({ where: { id: orderA.id } })
+    await prisma.order.deleteMany({ where: { title: { in: ["For admin", "For user"] } } })
+  })
+
+  it("PATCH /api/orders/:id lets the owner mark their order read", async () => {
+    const order = await prisma.order.create({ data: { title: "Owned", message: "m", userId: users.user.id, status: "unread" } })
+
+    const res = (await orderByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/orders/${order.id}`, {
+        token: tokenFor(users.user),
+        method: "PATCH",
+        body: { status: "read" },
+      }),
+      { params: Promise.resolve({ id: order.id }) },
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.order.status).toBe("read")
+
+    await prisma.order.delete({ where: { id: order.id } })
+  })
+
+  it("PATCH /api/orders/:id rejects a non-owner regular user (403)", async () => {
+    const order = await prisma.order.create({ data: { title: "Admin's", message: "m", userId: users.admin.id } })
+
+    const res = (await orderByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/orders/${order.id}`, {
+        token: tokenFor(users.user),
+        method: "PATCH",
+        body: { status: "read" },
+      }),
+      { params: Promise.resolve({ id: order.id }) },
+    )) as NextResponse
+    expect(res.status).toBe(403)
+
+    await prisma.order.delete({ where: { id: order.id } })
   })
 })
 

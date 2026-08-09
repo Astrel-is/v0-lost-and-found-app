@@ -117,6 +117,11 @@ export const updateClaimSchema = z.object({
   volunteerId: z.string().min(1).optional(),
 })
 
+// Order validation schemas
+export const updateOrderSchema = z.object({
+  status: z.enum(["read"]),
+})
+
 // Location validation schemas
 export const createLocationSchema = z.object({
   name: z.string().min(1).max(200).trim(),

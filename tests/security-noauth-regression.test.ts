@@ -11,6 +11,8 @@ import * as locationsRoute from "../app/api/locations/route"
 import * as locationByIdRoute from "../app/api/locations/[id]/route"
 import * as usersByIdRoute from "../app/api/users/[id]/route"
 import * as serviceRecordsRoute from "../app/api/service-records/route"
+import * as ordersRoute from "../app/api/orders/route"
+import * as orderByIdRoute from "../app/api/orders/[id]/route"
 
 function mockRequest(): NextRequest {
   const headers = new Headers()
@@ -73,6 +75,17 @@ describe("no-auth regression: protected routes require a session", () => {
 
   it("rejects POST /api/service-records without auth", async () => {
     const res = (await serviceRecordsRoute.POST(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects GET /api/orders without auth", async () => {
+    const res = (await ordersRoute.GET(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects PATCH /api/orders/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await orderByIdRoute.PATCH(req, ctx)) as NextResponse
     expect(res.status).toBe(401)
   })
 })

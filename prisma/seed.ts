@@ -181,6 +181,41 @@ async function main() {
   console.log("✓ Regular users created (4 users)")
   console.log("✓ Additional volunteers created (2 volunteers)")
 
+  // Create orders (security directives) for a few users
+  const seededUserIds = [user1.id, user2.id]
+  const existingOrders = await prisma.order.count({ where: { userId: { in: seededUserIds } } })
+
+  if (existingOrders === 0) {
+    const orders = [
+      {
+        userId: user1.id,
+        title: "Security Protocol Update",
+        message: "Please ensure all found items are photographed from at least three angles before logging them.",
+        status: "unread",
+        priority: "high",
+      },
+      {
+        userId: user1.id,
+        title: "Vault Access Reminder",
+        message: "Reminder: all vault access must be logged with the duty officer before entering the storage area.",
+        status: "read",
+        priority: "medium",
+      },
+      {
+        userId: user2.id,
+        title: "Weekend Coverage Notice",
+        message: "Additional coverage requested for the Sunday morning service. Coordinate with the volunteer team.",
+        status: "unread",
+        priority: "medium",
+      },
+    ]
+
+    await prisma.order.createMany({ data: orders })
+    console.log("✓ Orders created (3 security directives)")
+  } else {
+    console.log("✓ Orders already present, skipping")
+  }
+
   // Create locations
   const locations = [
     { name: "Main Sanctuary - Pew 12", description: "Main worship area" },

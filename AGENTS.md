@@ -37,11 +37,11 @@ The **pages in the UI now run on the real API** via `lib/api-client.ts` (cookie 
 "same-origin"`). All API-backed pages are wired: `/browse`, `/upload`, `/items/[id]`, `/dashboard`,
 `/my-claims`, `/my-uploads`, `/profile`, `/playbooks` (staff-only), `/admin`, `/admin/users`,
 `/admin/locations`, `/admin/playbooks`, `/admin/claims`, `/admin/releases`, `/admin/audit-logs`,
-`/admin/settings` (audit feed), `/volunteer/dashboard`, `/volunteer/release/[id]`, and the landing
-page's recent-items feed.
+`/admin/settings` (audit feed), `/volunteer/dashboard`, `/volunteer/release/[id]`, the landing
+page's recent-items feed, and `/orders` (own orders + mark-as-read via `PATCH /api/orders/[id]`).
 
 The **only remaining mock-only pages** (`lib/storage.ts`/`lib/mock-data.ts`) have **no backend
-models or routes**: `/missions`, `/orders`, `/admin/donations`, `/admin/meeting-minutes`,
+models or routes**: `/missions`, `/admin/donations`, `/admin/meeting-minutes`,
 `/admin/missions`. Adding a backend for those is the prerequisite before wiring them.
 
 The **DB-backed API under `app/api/*` is authoritative, secure, and the source of truth**.
