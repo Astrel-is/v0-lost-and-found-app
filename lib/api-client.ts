@@ -32,6 +32,15 @@ export interface UserListItem {
   name: string
   username: string
   role: string
+  itemsUploaded?: number
+  claimsSubmitted?: number
+  vaultPoints?: number
+  rank?: number
+  attendanceCount?: number
+  serviceCount?: number
+  joinedAt?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export class ApiError extends Error {
@@ -112,12 +121,13 @@ export const usersApi = {
 
 // Items API
 export const itemsApi = {
-  getAll: (params?: { search?: string; status?: string; category?: string; location?: string; limit?: number }) => {
+  getAll: (params?: { search?: string; status?: string; category?: string; location?: string; uploadedById?: string; limit?: number }) => {
     const searchParams = new URLSearchParams()
     if (params?.search) searchParams.set("search", params.search)
     if (params?.status) searchParams.set("status", params.status)
     if (params?.category) searchParams.set("category", params.category)
     if (params?.location) searchParams.set("location", params.location)
+    if (params?.uploadedById) searchParams.set("uploadedById", params.uploadedById)
     if (params?.limit) searchParams.set("limit", params.limit.toString())
     const query = searchParams.toString()
     return fetchApi<{ items: Item[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
@@ -155,10 +165,11 @@ export const itemsApi = {
 
 // Claims API
 export const claimsApi = {
-  getAll: (params?: { status?: string; claimantId?: string }) => {
+  getAll: (params?: { status?: string; claimantId?: string; limit?: number }) => {
     const searchParams = new URLSearchParams()
     if (params?.status) searchParams.set("status", params.status)
     if (params?.claimantId) searchParams.set("claimantId", params.claimantId)
+    if (params?.limit) searchParams.set("limit", params.limit.toString())
     const query = searchParams.toString()
     return fetchApi<{ claims: any[] }>(`/claims${query ? `?${query}` : ""}`)
   },

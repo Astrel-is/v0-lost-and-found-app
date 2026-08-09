@@ -20,9 +20,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    turbopack: {},
-  },
   async headers() {
     return [
       // Apply the same hardening to API routes (middleware excludes /api).

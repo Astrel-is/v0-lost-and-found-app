@@ -5,18 +5,18 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Shield, Lock, Eye, BookOpen } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { getItems, initializeStorage } from "@/lib/storage"
-import { type Item } from "@/lib/mock-data"
+import { itemsApi } from "@/lib/api-client"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 
 export default function HomePage() {
-  const [recentItems, setRecentItems] = useState<Item[]>([])
+  const [recentItems, setRecentItems] = useState<any[]>([])
 
   useEffect(() => {
-    initializeStorage()
-    const items = getItems().filter((item) => item.status === "available").slice(0, 4)
-    setRecentItems(items)
+    itemsApi
+      .getAll({ status: "available", limit: 4 })
+      .then((res) => setRecentItems(res.items))
+      .catch(() => setRecentItems([]))
   }, [])
 
   return (

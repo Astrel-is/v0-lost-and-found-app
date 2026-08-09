@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { createItemSchema, validateAndSanitize } from "@/lib/validation"
-import { sanitizeSearchQuery, validateUrl } from "@/lib/security"
+import { sanitizeSearchQuery, validateRouteId, validateUrl } from "@/lib/security"
 import { requireAuth } from "@/lib/auth-middleware"
 
 // GET all items
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status")
     const category = sanitizeSearchQuery(searchParams.get("category") || "")
     const location = sanitizeSearchQuery(searchParams.get("location") || "")
+    const uploadedById = searchParams.get("uploadedById")
     const page = parseInt(searchParams.get("page") || "1")
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100) // Max 100 per page
     const skip = (page - 1) * limit
@@ -45,6 +46,15 @@ export async function GET(request: NextRequest) {
 
     if (location) {
       where.location = { contains: location, mode: "insensitive" }
+    }
+
+    // Optional uploader filter (used by the "my uploads" page).
+    if (uploadedById) {
+      const idValidation = validateRouteId(uploadedById)
+      if (!idValidation.valid) {
+        return NextResponse.json({ error: "Invalid uploader ID format" }, { status: 400 })
+      }
+      where.uploadedById = uploadedById
     }
 
     const [items, total] = await Promise.all([

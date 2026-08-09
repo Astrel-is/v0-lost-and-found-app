@@ -19,21 +19,33 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { getItems, getClaims, initializeStorage } from "@/lib/storage"
+import { itemsApi, claimsApi, ApiError } from "@/lib/api-client"
+import { useToast } from "@/hooks/use-toast"
 
 export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
-  const [items, setItems] = useState(getItems())
-  const [claims, setClaims] = useState(getClaims())
+  const { toast } = useToast()
+  const [userUploads, setUserUploads] = useState<any[]>([])
+  const [userClaims, setUserClaims] = useState<any[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    initializeStorage()
-    setItems(getItems())
-    setClaims(getClaims())
-    setIsLoaded(true)
-  }, [])
+    if (!user) return
+    Promise.all([
+      itemsApi.getAll({ uploadedById: user.id, limit: 100 }),
+      claimsApi.getAll({ claimantId: user.id, limit: 100 }),
+    ])
+      .then(([itemsRes, claimsRes]) => {
+        setUserUploads(itemsRes.items)
+        setUserClaims(claimsRes.claims)
+      })
+      .catch((err) => {
+        const message = err instanceof ApiError ? err.message : "Failed to load dashboard"
+        toast({ title: "Error", description: message, variant: "destructive" })
+      })
+      .finally(() => setIsLoaded(true))
+  }, [user, toast])
 
   useEffect(() => {
     if (isLoaded && !isAuthenticated) {
@@ -67,8 +79,6 @@ export default function DashboardPage() {
     )
   }
 
-  const userUploads = items.filter((item) => item.uploadedBy === user?.name)
-  const userClaims = claims.filter((claim) => claim.claimantName === user?.name)
   const pendingClaims = userClaims.filter((claim) => claim.status === "pending")
   const releasedItems = userClaims.filter((claim) => claim.status === "released")
 

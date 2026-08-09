@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
-import { requireAdminOrVolunteer, requireAuth } from "@/lib/auth-middleware"
+import { requireAuth } from "@/lib/auth-middleware"
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { createClaimSchema, validateAndSanitize } from "@/lib/validation"
 import { sanitizeSearchQuery, validateRouteId, validateUrl } from "@/lib/security"
@@ -8,8 +8,9 @@ import { sanitizeSearchQuery, validateRouteId, validateUrl } from "@/lib/securit
 // GET all claims
 export async function GET(request: NextRequest) {
   try {
-    // Require admin or volunteer for viewing all claims
-    const authResult = await requireAdminOrVolunteer(request)
+    // Regular users may only ever see their own claims; staff see all claims
+    // (optionally filtered by claimant).
+    const authResult = await requireAuth(request)
     if (authResult instanceof NextResponse) {
       return authResult
     }
@@ -36,13 +37,17 @@ export async function GET(request: NextRequest) {
       where.status = status
     }
 
-    // Validate claimantId to prevent path traversal
-    if (claimantId) {
-      const idValidation = validateRouteId(claimantId)
+    const isStaff = authResult.user.role === "admin" || authResult.user.role === "volunteer"
+    // Users can only query their own claims; a supplied claimantId is ignored
+    // for non-staff so PII can't be enumerated.
+    const effectiveClaimantId = isStaff ? claimantId : authResult.user.id
+
+    if (effectiveClaimantId) {
+      const idValidation = validateRouteId(effectiveClaimantId)
       if (!idValidation.valid) {
         return NextResponse.json({ error: "Invalid claimant ID format" }, { status: 400 })
       }
-      where.claimantId = claimantId
+      where.claimantId = effectiveClaimantId
     }
 
     const [claims, total] = await Promise.all([
