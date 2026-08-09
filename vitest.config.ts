@@ -22,9 +22,6 @@ export default defineConfig({
       // Mock/legacy layers and client-only code are excluded: the coverage gate
       // targets the server-side security libs that guard the API.
       exclude: [
-        "lib/mock-data.ts",
-        "lib/mock-api.ts",
-        "lib/storage.ts",
         "lib/api-client.ts",
         "lib/audit-logger.ts",
         "lib/auth-context.tsx",

@@ -1,5 +1,52 @@
-import type { AuditLogType, AuditLog } from "./mock-data"
-import { addAuditLog as addAuditLogToStorage } from "./storage"
+export type AuditLogType =
+  | "user_created"
+  | "user_deleted"
+  | "user_password_changed"
+  | "item_uploaded"
+  | "item_claimed"
+  | "item_released"
+  | "item_donated"
+  | "attendance_marked"
+  | "service_marked"
+  | "location_created"
+  | "location_updated"
+  | "location_deleted"
+  | "playbook_created"
+  | "playbook_updated"
+  | "playbook_deleted"
+  | "mission_created"
+  | "mission_assigned"
+  | "mission_completed"
+  | "mission_cancelled"
+  | "system_settings_updated"
+  | "login"
+  | "logout"
+  | "order_sent"
+  | "meeting_minutes_created"
+  | "meeting_minutes_updated"
+  | "meeting_minutes_deleted"
+
+interface AuditLog {
+  id: string
+  type: AuditLogType
+  userId?: string
+  userName?: string
+  action: string
+  details?: string
+  timestamp: string
+  ipAddress?: string
+  severity: "info" | "warning" | "error" | "critical"
+}
+
+const AUDIT_LOGS_STORAGE_KEY = "vault_audit_logs"
+
+function addAuditLogToStorage(log: AuditLog) {
+  if (typeof window === "undefined") return
+  const existing = localStorage.getItem(AUDIT_LOGS_STORAGE_KEY)
+  const logs: AuditLog[] = existing ? (JSON.parse(existing) as AuditLog[]) : []
+  logs.push(log)
+  localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(logs))
+}
 
 // Writes an audit entry. When an authenticated session exists this is recorded
 // server-side via the API (identity derived from the session, so the trail is

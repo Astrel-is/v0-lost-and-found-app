@@ -44,14 +44,12 @@ page's recent-items feed, `/orders` (own orders + mark-as-read via `PATCH /api/o
 `/admin/missions` (full CRUD via `/api/missions` + `/api/missions/[id]`), and
 `/admin/meeting-minutes` (admin-only CRUD via `/api/meeting-minutes` + `/api/meeting-minutes/[id]`).
 
-Every page under `app/` is now wired to the real API — `lib/storage.ts`, `lib/mock-data.ts`, and
-`lib/mock-api.ts` are no longer imported by any page and are candidates for deletion.
+Every page under `app/` is now wired to the real API — the legacy mock layers
+`lib/storage.ts`, `lib/mock-data.ts`, and `lib/mock-api.ts` have been deleted.
 
 The **DB-backed API under `app/api/*` is authoritative, secure, and the source of truth**.
 - When adding or changing features, wire the UI to the real API (`lib/api-client.ts` or `fetch`
-  with `credentials: "same-origin"`). Do NOT extend the mock layers.
-- The eventual goal is to delete `lib/storage.ts`, `lib/mock-data.ts`, `lib/mock-api.ts` and
-  point every page at the API.
+  with `credentials: "same-origin"`). Do NOT re-create mock/storage layers.
 
 ## Security conventions (mandatory — do not break these)
 
