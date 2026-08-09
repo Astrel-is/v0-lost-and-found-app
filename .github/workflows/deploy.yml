@@ -37,6 +37,8 @@ jobs:
 
       # Database sync runs before the new code goes live so the schema is always
       # compatible. Both steps are skipped until the required secrets exist.
+      # PROD_DATABASE_URL is a Postgres URL; prisma.config.ts infers the provider
+      # and postgres migration history from its scheme.
       - name: Run production migrations
         if: ${{ secrets.PROD_DATABASE_URL != '' }}
         env:

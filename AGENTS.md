@@ -73,14 +73,24 @@ The **DB-backed API under `app/api/*` is authoritative, secure, and the source o
 
 ## Database & migrations
 
-- Dev DB is SQLite (`dev.db` at repo root, gitignored).
-- ⚠️ **Known gap: the app is SQLite-only right now.** `prisma/schema.prisma` hardcodes
-  `provider = "sqlite"` and `lib/prisma.ts` always uses the better-sqlite3 adapter, so the documented
-  "production Postgres via `DATABASE_URL`" does not actually work. A Postgres `DATABASE_URL` will fail
-  `prisma migrate deploy` (provider mismatch). Making Postgres work requires: an env-driven `provider`
-  in the schema, adapter selection by env in `lib/prisma.ts` (the Neon adapter is installed but unused),
-  and a Postgres-generated migration history. Until then, treat the Vercel deploy's `prisma migrate
-  deploy` + seed as SQLite-only, and add a Postgres CI smoke test once the provider is env-driven.
+- Dev DB is SQLite (`prisma/dev.db`, gitignored); production is Postgres.
+  The provider is inferred from the `DATABASE_URL` scheme (overridable via
+  `DATABASE_PROVIDER`) and drives three things that must stay in sync:
+  1. `prisma.config.ts` picks the schema + migration history per provider
+     (`prisma/schema.prisma` + `prisma/migrations` for SQLite,
+     `prisma/schema.postgresql.prisma` + `prisma/migrations-postgresql` for Postgres).
+  2. `lib/prisma.ts` picks the runtime driver adapter per provider
+     (`PrismaBetterSqlite3` vs `PrismaPg`).
+  3. `prisma generate` must run with the same env so the emitted client matches
+     the adapter (postinstall does this on install; CI covers both providers).
+- `prisma/schema.postgresql.prisma` is **generated** from `prisma/schema.prisma`
+  by `node scripts/sync-postgres-schema.mjs`. After editing the SQLite schema,
+  re-run that script, commit both files, and add the matching Postgres migration
+  (e.g. via `prisma migrate dev` against a local Postgres). CI fails if the
+  generated file drifts. Never hand-edit the postgres schema.
+- The `postgres-smoke` CI job runs the migrations, seed, and full test suite
+  against a real `postgres:16` container — treat it as the gate for any schema
+  or adapter change.
 - Schema changes: update `prisma/schema.prisma`, run `pnpm db:migrate` (dev). If the migration
   history drifts from the DB (e.g. a runtime table like `rate_limit_counters`), `start.sh` resets
   the dev DB — that is expected.
@@ -109,7 +119,9 @@ The **DB-backed API under `app/api/*` is authoritative, secure, and the source o
 ## CI/CD
 
 - CI (`.github/workflows/ci.yml`): lint, typecheck, prepare the ephemeral `ci.db` via
-  `prisma migrate deploy`, `pnpm test:coverage` (full suite + coverage gate), dependency review on
+  `prisma migrate deploy`, a schema-drift check on `schema.postgresql.prisma`,
+  `pnpm test:coverage` (full suite + coverage gate), a `postgres-smoke` job that
+  migrates/seeds/tests against a real `postgres:16` container, dependency review on
   PRs (`fail-on-severity: high`), production build.
 - CodeQL (`.github/workflows/codeql.yml`): semantic JS/TS scanning on PRs, `main`, and weekly.
 - Known baseline: `pnpm audit` reports a few `lodash` advisories (dev-tooling transitive dep, no
