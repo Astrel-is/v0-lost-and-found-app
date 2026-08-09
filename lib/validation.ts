@@ -122,6 +122,67 @@ export const updateOrderSchema = z.object({
   status: z.enum(["read"]),
 })
 
+// Mission validation schemas
+const missionPriority = z.enum(["low", "medium", "high", "critical"])
+const missionStatus = z.enum(["pending", "in_progress", "completed", "cancelled"])
+
+export const createMissionSchema = z.object({
+  title: z.string().min(1).max(200).trim(),
+  description: z.string().max(1000).trim().default(""),
+  instructions: z.string().max(5000).trim().default(""),
+  priority: missionPriority.default("medium"),
+  status: missionStatus.default("pending"),
+  dueDate: z.string().max(20).trim().optional().nullable(),
+  location: z.string().max(200).trim().optional().nullable(),
+  assignedTo: z.string().min(1),
+})
+
+export const updateMissionSchema = z.object({
+  title: z.string().min(1).max(200).trim().optional(),
+  description: z.string().max(1000).trim().optional(),
+  instructions: z.string().max(5000).trim().optional(),
+  priority: missionPriority.optional(),
+  status: missionStatus.optional(),
+  dueDate: z.string().max(20).trim().optional().nullable(),
+  location: z.string().max(200).trim().optional().nullable(),
+  completionNotes: z.string().max(1000).trim().optional(),
+  assignedTo: z.string().min(1).optional(),
+})
+
+// Meeting minutes validation schemas
+const actionItemSchema = z.object({
+  item: z.string().min(1).max(500).trim(),
+  assignedTo: z.string().min(1).max(200).trim(),
+  dueDate: z.string().max(20).trim().optional().nullable(),
+  status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+})
+
+const stringArraySchema = z.array(z.string().min(1).max(500).trim()).max(200)
+
+export const createMeetingMinutesSchema = z.object({
+  title: z.string().min(1).max(200).trim(),
+  meetingDate: z.string().min(1).max(20).trim(),
+  location: z.string().max(200).trim().optional().nullable(),
+  attendees: stringArraySchema.default([]),
+  agenda: stringArraySchema.default([]),
+  discussion: z.string().max(10000).trim().default(""),
+  actionItems: z.array(actionItemSchema).max(200).default([]),
+  decisions: stringArraySchema.default([]),
+  nextMeetingDate: z.string().max(20).trim().optional().nullable(),
+})
+
+export const updateMeetingMinutesSchema = z.object({
+  title: z.string().min(1).max(200).trim().optional(),
+  meetingDate: z.string().min(1).max(20).trim().optional(),
+  location: z.string().max(200).trim().optional().nullable(),
+  attendees: stringArraySchema.optional(),
+  agenda: stringArraySchema.optional(),
+  discussion: z.string().max(10000).trim().optional(),
+  actionItems: z.array(actionItemSchema).max(200).optional(),
+  decisions: stringArraySchema.optional(),
+  nextMeetingDate: z.string().max(20).trim().optional().nullable(),
+})
+
 // Location validation schemas
 export const createLocationSchema = z.object({
   name: z.string().min(1).max(200).trim(),

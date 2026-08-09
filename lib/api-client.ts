@@ -292,3 +292,66 @@ export const ordersApi = {
       body: JSON.stringify({ status: "read" }),
     }),
 }
+
+// Missions API
+export const missionsApi = {
+  getAll: () => fetchApi<{ missions: any[] }>("/missions"),
+
+  create: (data: {
+    title: string
+    description?: string
+    instructions: string
+    priority?: string
+    status?: string
+    dueDate?: string | null
+    location?: string | null
+    assignedTo: string
+  }) =>
+    fetchApi<{ mission: any; message: string }>("/missions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: string, data: {
+    title?: string
+    description?: string
+    instructions?: string
+    priority?: string
+    status?: string
+    dueDate?: string | null
+    location?: string | null
+    completionNotes?: string
+    assignedTo?: string
+  }) =>
+    fetchApi<{ mission: any; message: string }>(`/missions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: string) =>
+    fetchApi<{ message: string }>(`/missions/${id}`, {
+      method: "DELETE",
+    }),
+}
+
+// Meeting Minutes API
+export const meetingMinutesApi = {
+  getAll: () => fetchApi<{ minutes: any[] }>("/meeting-minutes"),
+
+  create: (data: Record<string, unknown>) =>
+    fetchApi<{ minutes: any; message: string }>("/meeting-minutes", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: string, data: Record<string, unknown>) =>
+    fetchApi<{ minutes: any; message: string }>(`/meeting-minutes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  delete: (id: string) =>
+    fetchApi<{ message: string }>(`/meeting-minutes/${id}`, {
+      method: "DELETE",
+    }),
+}

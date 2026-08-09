@@ -13,6 +13,10 @@ import * as usersByIdRoute from "../app/api/users/[id]/route"
 import * as serviceRecordsRoute from "../app/api/service-records/route"
 import * as ordersRoute from "../app/api/orders/route"
 import * as orderByIdRoute from "../app/api/orders/[id]/route"
+import * as missionsRoute from "../app/api/missions/route"
+import * as missionByIdRoute from "../app/api/missions/[id]/route"
+import * as meetingMinutesRoute from "../app/api/meeting-minutes/route"
+import * as meetingMinuteByIdRoute from "../app/api/meeting-minutes/[id]/route"
 
 function mockRequest(): NextRequest {
   const headers = new Headers()
@@ -86,6 +90,50 @@ describe("no-auth regression: protected routes require a session", () => {
   it("rejects PATCH /api/orders/:id without auth", async () => {
     const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
     const res = (await orderByIdRoute.PATCH(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects GET /api/missions without auth", async () => {
+    const res = (await missionsRoute.GET(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects POST /api/missions without auth", async () => {
+    const res = (await missionsRoute.POST(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects PATCH /api/missions/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await missionByIdRoute.PATCH(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects DELETE /api/missions/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await missionByIdRoute.DELETE(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects GET /api/meeting-minutes without auth", async () => {
+    const res = (await meetingMinutesRoute.GET(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects POST /api/meeting-minutes without auth", async () => {
+    const res = (await meetingMinutesRoute.POST(req)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects PATCH /api/meeting-minutes/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await meetingMinuteByIdRoute.PATCH(req, ctx)) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("rejects DELETE /api/meeting-minutes/:id without auth", async () => {
+    const ctx = { params: Promise.resolve({ id: "c0000000000000000000000000" }) } as unknown as { params: Promise<{ id: string }> }
+    const res = (await meetingMinuteByIdRoute.DELETE(req, ctx)) as NextResponse
     expect(res.status).toBe(401)
   })
 })

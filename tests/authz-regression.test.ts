@@ -7,6 +7,10 @@ import * as usersRoute from "../app/api/users/route"
 import * as itemsRoute from "../app/api/items/route"
 import * as ordersRoute from "../app/api/orders/route"
 import * as orderByIdRoute from "../app/api/orders/[id]/route"
+import * as missionsRoute from "../app/api/missions/route"
+import * as missionByIdRoute from "../app/api/missions/[id]/route"
+import * as meetingMinutesRoute from "../app/api/meeting-minutes/route"
+import * as meetingMinuteByIdRoute from "../app/api/meeting-minutes/[id]/route"
 
 // Endpoint-level role authorization tests against the real dev database. Users
 // are created for the test and removed afterwards, so the suite is self-contained.
@@ -211,6 +215,270 @@ describe("endpoint role authorization (real DB)", () => {
     expect(res.status).toBe(403)
 
     await prisma.order.delete({ where: { id: order.id } })
+  })
+
+  it("GET /api/missions requires a session (401 without)", async () => {
+    const res = (await missionsRoute.GET(cookieRequest("http://localhost/api/missions", {}))) as NextResponse
+    expect(res.status).toBe(401)
+  })
+
+  it("GET /api/missions returns only the caller's missions for a regular user", async () => {
+    const mine = await prisma.mission.create({
+      data: { title: "Mine", description: "", instructions: "", assignedTo: users.user.id, assignedBy: users.admin.id },
+    })
+    await prisma.mission.create({
+      data: { title: "Not mine", description: "", instructions: "", assignedTo: users.admin.id, assignedBy: users.admin.id },
+    })
+
+    const res = (await missionsRoute.GET(
+      cookieRequest("http://localhost/api/missions", { token: tokenFor(users.user) })
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    const titles = body.missions.map((m: { title: string }) => m.title)
+    expect(titles).toContain("Mine")
+    expect(titles).not.toContain("Not mine")
+
+    await prisma.mission.deleteMany({ where: { title: { in: ["Mine", "Not mine"] } } })
+  })
+
+  it("GET /api/missions returns all missions for staff", async () => {
+    const res = (await missionsRoute.GET(
+      cookieRequest("http://localhost/api/missions", { token: tokenFor(users.admin) })
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body.missions)).toBe(true)
+  })
+
+  it("POST /api/missions rejects a regular user (403)", async () => {
+    const res = (await missionsRoute.POST(
+      cookieRequest("http://localhost/api/missions", {
+        token: tokenFor(users.user),
+        method: "POST",
+        body: { title: "Never created", assignedTo: users.user.id },
+      })
+    )) as NextResponse
+    expect(res.status).toBe(403)
+    const created = await prisma.mission.findFirst({ where: { title: "Never created" } })
+    expect(created).toBeNull()
+  })
+
+  it("POST /api/missions allows an admin to create a mission", async () => {
+    const res = (await missionsRoute.POST(
+      cookieRequest("http://localhost/api/missions", {
+        token: tokenFor(users.admin),
+        method: "POST",
+        body: { title: "Admin mission", priority: "high", status: "pending", assignedTo: users.user.id },
+      })
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.mission.assignedTo).toBe(users.user.id)
+
+    await prisma.mission.deleteMany({ where: { title: "Admin mission" } })
+  })
+
+  it("PATCH /api/missions/:id lets an assignee complete their mission", async () => {
+    const mission = await prisma.mission.create({
+      data: { title: "Complete me", assignedTo: users.user.id, assignedBy: users.admin.id, status: "in_progress" },
+    })
+
+    const res = (await missionByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/missions/${mission.id}`, {
+        token: tokenFor(users.user),
+        method: "PATCH",
+        body: { status: "completed", completionNotes: "Done" },
+      }),
+      { params: Promise.resolve({ id: mission.id }) },
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.mission.status).toBe("completed")
+    expect(body.mission.completedAt).toBeTruthy()
+
+    await prisma.mission.delete({ where: { id: mission.id } })
+  })
+
+  it("PATCH /api/missions/:id blocks an assignee from staff-only fields (403)", async () => {
+    const mission = await prisma.mission.create({
+      data: { title: "Locked", assignedTo: users.user.id, assignedBy: users.admin.id },
+    })
+
+    const res = (await missionByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/missions/${mission.id}`, {
+        token: tokenFor(users.user),
+        method: "PATCH",
+        body: { title: "Hijacked" },
+      }),
+      { params: Promise.resolve({ id: mission.id }) },
+    )) as NextResponse
+    expect(res.status).toBe(403)
+
+    await prisma.mission.delete({ where: { id: mission.id } })
+  })
+
+  it("PATCH /api/missions/:id rejects a non-assignee regular user (403)", async () => {
+    const mission = await prisma.mission.create({
+      data: { title: "Assigned to admin", assignedTo: users.admin.id, assignedBy: users.admin.id },
+    })
+
+    const res = (await missionByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/missions/${mission.id}`, {
+        token: tokenFor(users.user),
+        method: "PATCH",
+        body: { status: "completed" },
+      }),
+      { params: Promise.resolve({ id: mission.id }) },
+    )) as NextResponse
+    expect(res.status).toBe(403)
+
+    await prisma.mission.delete({ where: { id: mission.id } })
+  })
+
+  it("PATCH /api/missions/:id lets a volunteer reassign a mission (staff)", async () => {
+    const mission = await prisma.mission.create({
+      data: { title: "Reassign me", assignedTo: users.user.id, assignedBy: users.admin.id },
+    })
+
+    const res = (await missionByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/missions/${mission.id}`, {
+        token: tokenFor(users.volunteer),
+        method: "PATCH",
+        body: { assignedTo: users.admin.id, priority: "critical" },
+      }),
+      { params: Promise.resolve({ id: mission.id }) },
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.mission.assignedTo).toBe(users.admin.id)
+    expect(body.mission.priority).toBe("critical")
+
+    await prisma.mission.delete({ where: { id: mission.id } })
+  })
+
+  it("DELETE /api/missions/:id rejects a volunteer (403)", async () => {
+    const mission = await prisma.mission.create({
+      data: { title: "Keep me", assignedTo: users.user.id, assignedBy: users.admin.id },
+    })
+
+    const res = (await missionByIdRoute.DELETE(
+      cookieRequest(`http://localhost/api/missions/${mission.id}`, { token: tokenFor(users.volunteer) }),
+      { params: Promise.resolve({ id: mission.id }) },
+    )) as NextResponse
+    expect(res.status).toBe(403)
+
+    await prisma.mission.delete({ where: { id: mission.id } })
+  })
+
+  it("DELETE /api/missions/:id allows an admin", async () => {
+    const mission = await prisma.mission.create({
+      data: { title: "Remove me", assignedTo: users.user.id, assignedBy: users.admin.id },
+    })
+
+    const res = (await missionByIdRoute.DELETE(
+      cookieRequest(`http://localhost/api/missions/${mission.id}`, { token: tokenFor(users.admin) }),
+      { params: Promise.resolve({ id: mission.id }) },
+    )) as NextResponse
+    expect(res.status).toBe(200)
+
+    const gone = await prisma.mission.findUnique({ where: { id: mission.id } })
+    expect(gone).toBeNull()
+  })
+
+  it("GET /api/meeting-minutes rejects a regular user (403)", async () => {
+    const res = (await meetingMinutesRoute.GET(
+      cookieRequest("http://localhost/api/meeting-minutes", { token: tokenFor(users.user) })
+    )) as NextResponse
+    expect(res.status).toBe(403)
+  })
+
+  it("POST /api/meeting-minutes rejects a volunteer (403)", async () => {
+    const res = (await meetingMinutesRoute.POST(
+      cookieRequest("http://localhost/api/meeting-minutes", {
+        token: tokenFor(users.volunteer),
+        method: "POST",
+        body: { title: "Should not exist", meetingDate: "2026-08-01" },
+      })
+    )) as NextResponse
+    expect(res.status).toBe(403)
+    const created = await prisma.meetingMinutes.findFirst({ where: { title: "Should not exist" } })
+    expect(created).toBeNull()
+  })
+
+  it("POST /api/meeting-minutes allows an admin and derives recordedBy from the session", async () => {
+    const res = (await meetingMinutesRoute.POST(
+      cookieRequest("http://localhost/api/meeting-minutes", {
+        token: tokenFor(users.admin),
+        method: "POST",
+        body: {
+          title: "Admin minutes",
+          meetingDate: "2026-08-05",
+          attendees: ["Ada Lovelace"],
+          agenda: ["Item 1"],
+          actionItems: [{ item: "Action", assignedTo: "Ada Lovelace", status: "pending" }],
+          decisions: [],
+        },
+      })
+    )) as NextResponse
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.minutes.title).toBe("Admin minutes")
+    expect(body.minutes.attendees).toEqual(["Ada Lovelace"])
+    expect(body.minutes.recordedBy).toBe(users.admin.name)
+
+    await prisma.meetingMinutes.deleteMany({ where: { title: "Admin minutes" } })
+  })
+
+  it("PATCH /api/meeting-minutes/:id allows an admin and rejects a user", async () => {
+    const minutes = await prisma.meetingMinutes.create({
+      data: { title: "Patch me", meetingDate: "2026-08-05", attendees: [], agenda: [], actionItems: [], decisions: [] },
+    })
+
+    const denied = (await meetingMinuteByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/meeting-minutes/${minutes.id}`, {
+        token: tokenFor(users.user),
+        method: "PATCH",
+        body: { title: "Hijacked" },
+      }),
+      { params: Promise.resolve({ id: minutes.id }) },
+    )) as NextResponse
+    expect(denied.status).toBe(403)
+
+    const allowed = (await meetingMinuteByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/meeting-minutes/${minutes.id}`, {
+        token: tokenFor(users.admin),
+        method: "PATCH",
+        body: { title: "Patched" },
+      }),
+      { params: Promise.resolve({ id: minutes.id }) },
+    )) as NextResponse
+    expect(allowed.status).toBe(200)
+    const body = await allowed.json()
+    expect(body.minutes.title).toBe("Patched")
+
+    await prisma.meetingMinutes.delete({ where: { id: minutes.id } })
+  })
+
+  it("DELETE /api/meeting-minutes/:id rejects a volunteer and allows an admin", async () => {
+    const minutes = await prisma.meetingMinutes.create({
+      data: { title: "Delete me", meetingDate: "2026-08-05", attendees: [], agenda: [], actionItems: [], decisions: [] },
+    })
+
+    const denied = (await meetingMinuteByIdRoute.DELETE(
+      cookieRequest(`http://localhost/api/meeting-minutes/${minutes.id}`, { token: tokenFor(users.volunteer) }),
+      { params: Promise.resolve({ id: minutes.id }) },
+    )) as NextResponse
+    expect(denied.status).toBe(403)
+
+    const allowed = (await meetingMinuteByIdRoute.DELETE(
+      cookieRequest(`http://localhost/api/meeting-minutes/${minutes.id}`, { token: tokenFor(users.admin) }),
+      { params: Promise.resolve({ id: minutes.id }) },
+    )) as NextResponse
+    expect(allowed.status).toBe(200)
+
+    const gone = await prisma.meetingMinutes.findUnique({ where: { id: minutes.id } })
+    expect(gone).toBeNull()
   })
 })
 

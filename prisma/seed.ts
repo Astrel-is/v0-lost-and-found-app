@@ -216,6 +216,66 @@ async function main() {
     console.log("✓ Orders already present, skipping")
   }
 
+  // Create missions assigned to volunteers and users
+  const existingMissions = await prisma.mission.count()
+  if (existingMissions === 0) {
+    await prisma.mission.createMany({
+      data: [
+        {
+          title: "Count lost & found inventory",
+          description: "Perform a full inventory count of the lost & found storage room.",
+          instructions: "Use the vault checklist and log any discrepancies with the duty officer.",
+          priority: "high",
+          status: "in_progress",
+          dueDate: "2026-08-15",
+          location: "Vault storage room",
+          assignedTo: volunteer.id,
+          assignedBy: admin.id,
+        },
+        {
+          title: "Audit volunteer release log",
+          description: "Cross-check the item release log against approved claims.",
+          instructions: "Reconcile the last 30 days of releases and report any unmatched entries.",
+          priority: "medium",
+          status: "pending",
+          dueDate: "2026-08-20",
+          location: "Volunteer office",
+          assignedTo: user1.id,
+          assignedBy: admin.id,
+        },
+      ],
+    })
+    console.log("✓ Missions created (2)")
+  } else {
+    console.log("✓ Missions already present, skipping")
+  }
+
+  // Create meeting minutes
+  const existingMinutes = await prisma.meetingMinutes.count()
+  if (existingMinutes === 0) {
+    await prisma.meetingMinutes.createMany({
+      data: [
+        {
+          title: "Volunteer Safety Briefing",
+          meetingDate: "2026-08-02",
+          location: "Main sanctuary",
+          attendees: ["Tom Anderson", "Emily Rodriguez", "John Doe"],
+          agenda: ["Review vault access rules", "Update incident response contacts"],
+          discussion: "Reminder that all found items must be logged with a photo within 24 hours.",
+          actionItems: [
+            { item: "Post updated contact list", assignedTo: "Tom Anderson", dueDate: "2026-08-09", status: "pending" },
+          ],
+          decisions: ["Adopt the two-person rule for vault access."],
+          nextMeetingDate: "2026-09-06",
+          recordedBy: "System Administrator",
+        },
+      ],
+    })
+    console.log("✓ Meeting minutes created (1)")
+  } else {
+    console.log("✓ Meeting minutes already present, skipping")
+  }
+
   // Create locations
   const locations = [
     { name: "Main Sanctuary - Pew 12", description: "Main worship area" },

@@ -38,14 +38,16 @@ The **pages in the UI now run on the real API** via `lib/api-client.ts` (cookie 
 `/my-claims`, `/my-uploads`, `/profile`, `/playbooks` (staff-only), `/admin`, `/admin/users`,
 `/admin/locations`, `/admin/playbooks`, `/admin/claims`, `/admin/releases`, `/admin/audit-logs`,
 `/admin/settings` (audit feed), `/volunteer/dashboard`, `/volunteer/release/[id]`, the landing
-page's recent-items feed, and `/orders` (own orders + mark-as-read via `PATCH /api/orders/[id]`).
+page's recent-items feed, `/orders` (own orders + mark-as-read via `PATCH /api/orders/[id]`),
+`/missions` (staff see all; users see only their assigned missions, start/complete via
+`PATCH /api/missions/[id]`), `/admin/donations` (items view via `GET /api/items`),
+`/admin/missions` (full CRUD via `/api/missions` + `/api/missions/[id]`), and
+`/admin/meeting-minutes` (admin-only CRUD via `/api/meeting-minutes` + `/api/meeting-minutes/[id]`).
 
-The **only remaining mock-only pages** (`lib/storage.ts`/`lib/mock-data.ts`) have **no backend
-models or routes**: `/missions`, `/admin/donations`, `/admin/meeting-minutes`,
-`/admin/missions`. Adding a backend for those is the prerequisite before wiring them.
+Every page under `app/` is now wired to the real API — `lib/storage.ts`, `lib/mock-data.ts`, and
+`lib/mock-api.ts` are no longer imported by any page and are candidates for deletion.
 
 The **DB-backed API under `app/api/*` is authoritative, secure, and the source of truth**.
-
 - When adding or changing features, wire the UI to the real API (`lib/api-client.ts` or `fetch`
   with `credentials: "same-origin"`). Do NOT extend the mock layers.
 - The eventual goal is to delete `lib/storage.ts`, `lib/mock-data.ts`, `lib/mock-api.ts` and
