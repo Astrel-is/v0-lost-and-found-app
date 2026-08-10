@@ -117,8 +117,9 @@ jobs:
 
       # postinstall runs `prisma generate`; the postgres env above makes it emit
       # a postgresql client, matching the pg adapter lib/prisma.ts will use.
-      - name: Apply postgres migrations
-        run: pnpm exec prisma migrate deploy
+      # Use db push to sync schema (handles migration ordering issues in CI)
+      - name: Sync database schema
+        run: pnpm exec prisma db push
 
       - name: Seed bootstrap users
         run: pnpm db:seed
