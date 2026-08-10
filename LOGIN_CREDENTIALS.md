@@ -7,11 +7,12 @@ All test accounts are pre-configured and ready to use. Simply navigate to `/logi
 ---
 
 ## Admin Account
-\`\`\`
+
+```
 Username: admin
-Password: <bootstrap-password>
+Password: SecureAdmin123!
 Role: Administrator (Full system access)
-\`\`\`
+```
 
 **Access:**
 - Admin Dashboard - view system stats and metrics
@@ -24,11 +25,12 @@ Role: Administrator (Full system access)
 ---
 
 ## Volunteer Account
-\`\`\`
-Username: volunteer
-Password: <bootstrap-password>
+
+```
+Username: tomanderson
+Password: VolunteerPass123!
 Role: Volunteer (Staff)
-\`\`\`
+```
 
 **Access:**
 - Volunteer Dashboard - view pending claims
@@ -42,26 +44,33 @@ Role: Volunteer (Staff)
 
 ## User Accounts (Regular Users)
 
-### User 1
-\`\`\`
-Username: john
-Password: <bootstrap-password>
+### User 1: John Doe
+```
+Username: johndoe
+Password: UserPass123!
 Role: User
-\`\`\`
+```
 
-### User 2
-\`\`\`
-Username: sarah
-Password: <bootstrap-password>
+### User 2: Sarah Johnson
+```
+Username: sarahjohnson
+Password: UserPass123!
 Role: User
-\`\`\`
+```
 
-### User 3
-\`\`\`
-Username: michael
-Password: <bootstrap-password>
+### User 3: Michael Chen
+```
+Username: michaelchen
+Password: UserPass123!
 Role: User
-\`\`\`
+```
+
+### User 4: David Park
+```
+Username: davidpark
+Password: UserPass123!
+Role: User
+```
 
 **Access:**
 - Upload Items - add lost/found items to the system
@@ -77,9 +86,9 @@ Role: User
 
 ## Testing Quick Start
 
-1. **For Admin Testing:** Login with `admin` / `<bootstrap-password>`
-2. **For Volunteer Testing:** Login with `volunteer` / `<bootstrap-password>`
-3. **For User Testing:** Login with `john` / `<bootstrap-password>` (or `sarah`, `michael`)
+1. **For Admin Testing:** Login with `admin` / `SecureAdmin123!`
+2. **For Volunteer Testing:** Login with `tomanderson` / `VolunteerPass123!`
+3. **For User Testing:** Login with `johndoe` / `UserPass123!` (or `sarahjohnson`, `michaelchen`, `davidpark`)
 
 All accounts have full functionality enabled. No special setup or configuration needed.
 
@@ -92,3 +101,7 @@ All accounts have full functionality enabled. No special setup or configuration 
 - Use the volunteer account to process claims submitted by user accounts
 - Use the admin account to manage all system settings and users
 - Password changes work normally - you can change any account's password from the Profile page
+- The production seed script allows overriding passwords via environment variables:
+  - `BOOTSTRAP_ADMIN_PASSWORD`
+  - `BOOTSTRAP_VOLUNTEER_PASSWORD`
+  - `BOOTSTRAP_USER_PASSWORD`
