@@ -151,7 +151,7 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-slate-50 via-slate-100 to-slate-50 px-4 py-12 dark:from-slate-950 dark:via-zinc-900 dark:to-slate-950">
       {/* Living starfield */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-40 dark:opacity-80">
         {STARFIELD.map((s) => (
           <span
             key={s.id}
@@ -200,7 +200,7 @@ export default function LoginPage() {
       {/* Vignette */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 100%)" }}
+        style={{ background: "radial-gradient(ellipse at center, transparent 65%, rgba(15,23,42,0.08) 100%)" }}
       />
 
       {/* Theme toggle */}
@@ -227,10 +227,10 @@ export default function LoginPage() {
 
         {/* Title */}
         <div className="mb-8 text-center">
-          <h1 className="animate-cinematic-text-reveal delay-200 mb-2 fill-mode-forwards text-2xl font-bold tracking-[0.15em] text-slate-900 opacity-0 dark:text-white sm:text-3xl">
+          <h1 className="mb-2 text-2xl font-bold tracking-[0.15em] text-foreground sm:text-3xl">
             THE VAULT
           </h1>
-          <p className="animate-cinematic-text-reveal delay-300 fill-mode-forwards text-xs font-medium uppercase tracking-[0.3em] text-slate-500 opacity-0 dark:text-slate-400 sm:text-sm">
+          <p className="text-xs font-medium uppercase tracking-[0.3em] text-muted-foreground sm:text-sm">
             SECURITY OPERATIONS
           </p>
         </div>
@@ -238,7 +238,7 @@ export default function LoginPage() {
         {/* Login form card */}
         <div
           className={cn(
-            "animate-cinematic-slide-up delay-400 rounded-2xl border border-slate-200/50 bg-white/60 p-6 opacity-0 shadow-2xl backdrop-blur-xl fill-mode-forwards dark:border-white/10 dark:bg-white/5 sm:p-8",
+            "rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-xl sm:p-8",
             shake && "animate-cinematic-shake"
           )}
         >
@@ -255,7 +255,7 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={phase !== "idle"}
-                className="bg-white/80 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-green-500 focus:ring-green-500/20 dark:bg-white/5 dark:border-white/10 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-green-400 dark:focus:ring-green-400/20"
+                className="h-11 border-input bg-background text-foreground placeholder:text-muted-foreground shadow-sm focus-visible:border-ring focus-visible:ring-ring/30 dark:bg-input/40"
               />
             </div>
             <div className="space-y-2">
@@ -270,7 +270,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={phase !== "idle"}
-                className="bg-white/80 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-green-500 focus:ring-green-500/20 dark:bg-white/5 dark:border-white/10 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-green-400 dark:focus:ring-green-400/20"
+                className="h-11 border-input bg-background text-foreground placeholder:text-muted-foreground shadow-sm focus-visible:border-ring focus-visible:ring-ring/30 dark:bg-input/40"
               />
             </div>
             <Button
