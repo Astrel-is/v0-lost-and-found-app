@@ -20,6 +20,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+<<<<<<< HEAD
+=======
   async headers() {
     return [
       // Apply the same hardening to API routes (middleware excludes /api).
@@ -29,6 +31,7 @@ const nextConfig = {
       },
     ]
   },
+>>>>>>> fe2d2d964d64c36af48df87af815cae4bd5b8699
 }
 
 export default nextConfig

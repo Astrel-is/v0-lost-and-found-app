@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
+<<<<<<< HEAD:proxy.ts
+export function proxy(request: NextRequest) {
+=======
 const enc = new TextEncoder()
 
 function base64UrlDecodeBytes(input: string): Uint8Array {
@@ -54,6 +57,7 @@ async function verifyJwt(token: string, secret: string): Promise<{ sub: string; 
 }
 
 export async function middleware(request: NextRequest) {
+>>>>>>> fe2d2d964d64c36af48df87af815cae4bd5b8699:middleware.ts
   const response = NextResponse.next()
 
   // Security Headers
