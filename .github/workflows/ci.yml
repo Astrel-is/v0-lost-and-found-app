@@ -81,7 +81,7 @@ jobs:
     name: Postgres smoke test
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vault
+      DATABASE_URL: postgresql://postgres:***@localhost:5432/vault
       DATABASE_PROVIDER: postgresql
     services:
       postgres:
@@ -93,7 +93,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready -U postgres
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
