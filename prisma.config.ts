@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import { defineConfig, env } from "prisma/config"
-
-export default defineConfig({
-  schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-  },
-  datasource: {
-    url: env("DATABASE_URL"),
-=======
 import "dotenv/config"
 import { defineConfig } from "prisma/config"
 
@@ -33,6 +22,5 @@ export default defineConfig({
   },
   datasource: {
     url,
->>>>>>> fe2d2d964d64c36af48df87af815cae4bd5b8699
   },
 })
