@@ -29,43 +29,22 @@ export function ItemCard({
   const daysAgo = Math.floor((new Date().getTime() - dateFound.getTime()) / (1000 * 60 * 60 * 24))
 
   return (
-<<<<<<< HEAD
     <Link href={`/items/${id}`}>
       <Card className="group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1 border-border/50 hover:border-primary/30 backdrop-blur-sm bg-card/50 hover:bg-card/80 cursor-pointer">
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-muted to-muted/50">
           {/* Shimmer overlay on hover */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
             <div className="absolute inset-0 animate-shimmer" />
-=======
-    <Card className="group overflow-hidden transition-shadow hover:shadow-md">
-      <div className="relative aspect-square overflow-hidden bg-muted">
-        <Image
-          src={imageUrl || "/placeholder.svg"}
-          alt={`${category}${color ? ` in ${color}` : ""} found item`}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 25vw, 320px"
-          className="object-cover transition-transform group-hover:scale-105"
-        />
-      </div>
-      <div className="p-4">
-        <div className="mb-3 flex items-start justify-between">
-          <div>
-            <h3 className="font-semibold text-card-foreground">{category}</h3>
-            {color && <p className="text-sm text-muted-foreground">{color}</p>}
->>>>>>> fe2d2d964d64c36af48df87af815cae4bd5b8699
           </div>
-          
           <Image
             src={imageUrl || "/placeholder.svg"}
             alt={category}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
-          
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
-        
         <div className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -82,7 +61,6 @@ export function ItemCard({
               <StatusBadge status={status} />
             </div>
           </div>
-          
           <div className="space-y-1.5 text-sm">
             <p className="text-muted-foreground group-hover:text-foreground/70 transition-colors duration-300">
               <span className="font-medium">Found:</span> {daysAgo} {daysAgo === 1 ? "day" : "days"} ago
@@ -91,15 +69,13 @@ export function ItemCard({
               📍 {location}
             </p>
           </div>
-          
           {status === "available" && donationDeadline && (
             <div className="mb-2">
               <CountdownTimer targetDate={donationDeadline} />
             </div>
           )}
-          
-          <Button 
-            className="w-full font-semibold shadow-md hover:shadow-lg transition-all duration-300 group-hover:scale-105 origin-bottom" 
+          <Button
+            className="w-full font-semibold shadow-md hover:shadow-lg transition-all duration-300 group-hover:scale-105 origin-bottom"
             variant={status === "available" ? "default" : "outline"}
           >
             {status === "available" ? "View & Claim" : "View Details"}
