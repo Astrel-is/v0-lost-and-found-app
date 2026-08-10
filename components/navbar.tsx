@@ -39,7 +39,11 @@ export function Navbar({ role = "user" }: NavbarProps) {
   if (role === "admin") links = adminLinks
 
   return (
+<<<<<<< HEAD
     <header className="sticky top-0 z-50 border-b border-border/30 glass-effect hidden md:block animate-slide-in-down">
+=======
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl hidden md:block">
+>>>>>>> fe2d2d964d64c36af48df87af815cae4bd5b8699
       <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
         <Link href="/" className="flex items-center gap-4 group">
           <div className="relative h-10 w-10 sm:h-12 sm:w-12 transition-all duration-500 border border-primary/30 group-hover:border-primary/60 rounded-lg p-1 bg-gradient-to-br from-primary/10 to-accent/10 shadow-lg group-hover:shadow-xl group-hover:shadow-primary/20">
