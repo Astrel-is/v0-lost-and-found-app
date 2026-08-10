@@ -53,7 +53,7 @@ async function verifyJwt(token: string, secret: string): Promise<{ sub: string; 
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next()
 
   // Security Headers
