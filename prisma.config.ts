@@ -1,33 +1,26 @@
-import { PrismaClient } from "@prisma/client"
+import "dotenv/config"
 import { defineConfig } from "prisma/config"
-import { PrismaPg } from "@prisma/adapter-pg"
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
+
+// Select the datasource provider from the DATABASE_URL scheme, overridable via
+// DATABASE_PROVIDER. This is what lets the same schema files drive SQLite dev
+// and Postgres production with separate migration histories.
+const url = process.env.DATABASE_URL ?? ""
+const provider =
+  process.env.DATABASE_PROVIDER === "postgresql" ||
+  url.startsWith("postgresql://") ||
+  url.startsWith("postgres://")
+    ? "postgresql"
+    : "sqlite"
+
+const isPostgres = provider === "postgresql"
 
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  schema: isPostgres ? "prisma/schema.postgresql.prisma" : "prisma/schema.prisma",
   migrations: {
-    table: "_prisma_migrations",
+    path: isPostgres ? "prisma/migrations-postgresql" : "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
   },
-  adapter:
-    process.env.DATABASE_PROVIDER === "postgresql" ||
-    process.env.DATABASE_URL?.startsWith("postgresql://") ||
-    process.env.DATABASE_URL?.startsWith("postgres://")
-      ? new PrismaPg({ connectionString: process.env.DATABASE_URL ?? "" })
-      : new PrismaBetterSqlite3({ url: "file:./dev.db" }),
+  datasource: {
+    url,
+  },
 })
-
-declare global {
-  // allow global `var` declarations in TypeScript
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined
-}
-
-const prisma =
-  global.prisma ||
-  new PrismaClient({
-    log: ["query", "error", "warn"],
-  })
-
-if (process.env.NODE_ENV !== "production") global.prisma = prisma
-
-export { prisma }
