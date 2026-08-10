@@ -26,6 +26,7 @@ export default defineConfig({
         "lib/audit-logger.ts",
         "lib/auth-context.tsx",
         "lib/client-security.ts",
+        "lib/utils.ts", // UI utility for tailwind class merging, not security-critical
       ],
       reporter: ["text", "html"],
       thresholds: {

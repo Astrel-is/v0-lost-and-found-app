@@ -65,7 +65,7 @@ export const createItemSchema = z.object({
     message: "Description contains invalid characters",
   }).optional(),
   uniqueMarkings: z.string().max(500).trim().refine((val) => !val || !val.includes(".."), {
-    message: "Unique markings contains invalid characters",
+  message: "Unique markings contains invalid characters",
   }).optional(),
 })
 
@@ -106,7 +106,7 @@ export const createClaimSchema = z.object({
       message: "Invalid claimant ID format",
     }),
   notes: z.string().max(500).trim().refine((val) => !val || !val.includes(".."), {
-    message: "Notes contains invalid characters",
+  message: "Notes contains invalid characters",
   }).optional(),
 })
 

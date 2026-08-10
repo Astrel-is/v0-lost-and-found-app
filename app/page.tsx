@@ -7,7 +7,7 @@ import { Shield, Lock, Eye, BookOpen } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ItemCard } from "@/components/item-card"
 import { itemsApi } from "@/lib/api-client"
-import { type Item } from "@/lib/validation"
+import { type Item } from "@/lib/api-client"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 
