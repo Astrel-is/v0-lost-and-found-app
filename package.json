@@ -3,13 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.3.0",
-  "pnpm": {
-      "better-sqlite3",
-      "@prisma/engines",
-      "prisma",
-      "esbuild"
-    ]
-  },
   "scripts": {
     "build": "prisma generate && next build",
     "db:generate": "prisma generate",
