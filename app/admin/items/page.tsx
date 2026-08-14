@@ -24,6 +24,22 @@ export default function AdminItemsPage() {
   const [items, setItems] = useState<Item[]>([])
   const [nameMap, setNameMap] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleDelete = async (itemId: string) => {
+    if (!confirm("Delete this item permanently? This cannot be undone.")) return
+    setDeletingId(itemId)
+    try {
+      await itemsApi.delete(itemId)
+      setItems((prev) => prev.filter((i) => i.id !== itemId))
+      toast({ title: "Item Deleted", description: "The item has been removed." })
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to delete item."
+      toast({ title: "Delete Failed", description: message, variant: "destructive" })
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== "admin") return
@@ -174,23 +190,22 @@ export default function AdminItemsPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <p className="font-medium text-card-foreground">{item.category}</p>
-                        <p className="text-sm text-muted-foreground">{item.color}</p>
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">{item.location}</td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {new Date(item.dateFounded).toLocaleDateString()}
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">{nameMap[item.uploadedBy.id] ?? "—"}</td>
-                      <td className="p-4">
-                        <StatusBadge status={item.status} />
-                      </td>
-                      <td className="p-4">
-                        <Link href={`/items/${item.id}`}>
-                          <Button size="sm" variant="ghost">
-                            View
+                        <div className="flex gap-2">
+                          <Link href={`/items/${item.id}`}>
+                            <Button size="sm" variant="ghost">
+                              View
+                            </Button>
+                          </Link>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            disabled={deletingId === item.id}
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            {deletingId === item.id ? "Deleting..." : "Delete"}
                           </Button>
-                        </Link>
+                        </div>
                       </td>
                     </tr>
                   ))
