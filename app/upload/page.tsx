@@ -22,6 +22,7 @@ export default function UploadPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [itemImage, setItemImage] = useState<string | null>(null)
+const [imageFile, setImageFile] = useState<File | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [category, setCategory] = useState("")
@@ -95,29 +96,16 @@ export default function UploadPage() {
         return
       }
 
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const result = reader.result as string
-        // Validate and sanitize the data URL
-        const sanitized = sanitizeUrl(result)
-        if (sanitized) {
-          setItemImage(sanitized)
-        } else {
-          toast({
-            title: "Invalid Image",
-            description: "Please upload a valid image.",
-            variant: "destructive",
-          })
-        }
-      }
-      reader.readAsDataURL(file)
+      // Keep the real file for upload, and a local preview URL for display only
+      setImageFile(file)
+      const previewUrl = URL.createObjectURL(file)
+      setItemImage(previewUrl)
     }
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!itemImage || !category || !location || !dateFound || !user) {
+    if (!imageFile || !category || !location || !dateFound || !user) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
@@ -126,19 +114,35 @@ export default function UploadPage() {
       return
     }
 
-    // Sanitize all inputs before sending (server re-validates)
-    const sanitizedImageUrl = sanitizeUrl(itemImage)
-    if (!sanitizedImageUrl) {
-      toast({
-        title: "Invalid Image",
-        description: "Please upload a valid image.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsSaving(true)
     try {
+      // Upload the real photo file to Blob storage first
+      const formData = new FormData()
+      formData.append("file", imageFile)
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData,
+      })
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to upload image")
+      }
+
+      const { url: uploadedImageUrl } = await uploadRes.json()
+
+      const sanitizedImageUrl = sanitizeUrl(uploadedImageUrl)
+      if (!sanitizedImageUrl) {
+        toast({
+          title: "Invalid Image",
+          description: "Please upload a valid image.",
+          variant: "destructive",
+        })
+        setIsSaving(false)
+        return
+      }
       await itemsApi.create({
         imageUrl: sanitizedImageUrl,
         category: sanitizeInput(category.charAt(0).toUpperCase() + category.slice(1)),
@@ -156,7 +160,12 @@ export default function UploadPage() {
 
       setIsSubmitted(true)
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to upload item. Please try again."
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to upload item. Please try again."
       toast({ title: "Upload Failed", description: message, variant: "destructive" })
     } finally {
       setIsSaving(false)
