@@ -11,7 +11,6 @@ import {
   Package,
   Clock,
   MessageSquare,
-  BookOpen,
   Trophy,
   Star,
   TrendingUp,
@@ -164,20 +163,6 @@ export default function DashboardPage() {
             </Card>
           </Link>
 
-          <Link href="/playbooks">
-            <Card className="group cursor-pointer p-6 transition-shadow hover:shadow-md">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500/10 transition-colors group-hover:bg-amber-500/20">
-                  <BookOpen className="h-6 w-6 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-card-foreground">Playbooks</h3>
-                  <p className="text-sm text-muted-foreground">Security protocols & procedures</p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-
           <Link href="/orders">
             <Card className={`group cursor-pointer p-6 transition-shadow hover:shadow-md ${unreadOrders.length > 0 ? "border-primary/50 bg-primary/5" : ""}`}>
               <div className="flex items-center gap-4">
@@ -250,7 +235,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-4 flex items-center gap-2 text-xs font-medium text-emerald-500">
               <TrendingUp className="w-3 h-3" />
-              <span>Top 12% of community contributors</span>
+              <span>{user?.rank ? `Rank #${user.rank} in your congregation` : "Rank unavailable"}</span>
             </div>
           </Card>
 

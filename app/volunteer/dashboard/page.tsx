@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, CheckCircle } from "lucide-react"
+import { Search } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
@@ -17,13 +17,23 @@ export default function VolunteerDashboardPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
-  const [claims, setClaims] = useState<any[]>([])
+  const [pendingClaims, setPendingClaims] = useState<any[]>([])
+  const [approvedClaims, setApprovedClaims] = useState<any[]>([])
+  const [releasedClaims, setReleasedClaims] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<"pending" | "approved">("pending")
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    claimsApi
-      .getAll({ status: "pending", limit: 100 })
-      .then((res) => setClaims(res.claims))
+    Promise.all([
+      claimsApi.getAll({ status: "pending", limit: 100 }),
+      claimsApi.getAll({ status: "approved", limit: 100 }),
+      claimsApi.getAll({ status: "released", limit: 100 }),
+    ])
+      .then(([pendingRes, approvedRes, releasedRes]) => {
+        setPendingClaims(pendingRes.claims)
+        setApprovedClaims(approvedRes.claims)
+        setReleasedClaims(releasedRes.claims)
+      })
       .catch((err) => {
         const message = err instanceof ApiError ? err.message : "Failed to load claims"
         toast({ title: "Error", description: message, variant: "destructive" })
@@ -41,20 +51,20 @@ export default function VolunteerDashboardPage() {
     return null
   }
 
-  const pendingClaims = claims.filter((claim) => claim.status === "pending")
+  const visibleClaims = activeTab === "pending" ? pendingClaims : approvedClaims
 
-  const filteredClaims = pendingClaims.filter((claim) => {
+  const filteredClaims = visibleClaims.filter((claim) => {
     const searchLower = searchQuery.toLowerCase()
     return claim.itemName.toLowerCase().includes(searchLower) || claim.claimantName.toLowerCase().includes(searchLower)
   })
 
-  const releasedToday = claims.filter((claim) => {
+  const releasedToday = releasedClaims.filter((claim) => {
     if (!claim.releasedAt) return false
     const today = new Date().toDateString()
     return new Date(claim.releasedAt).toDateString() === today
   }).length
 
-  const releasedThisWeek = claims.filter((claim) => {
+  const releasedThisWeek = releasedClaims.filter((claim) => {
     if (!claim.releasedAt) return false
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
     return new Date(claim.releasedAt).getTime() > weekAgo
@@ -82,10 +92,14 @@ export default function VolunteerDashboardPage() {
         </Card>
 
         {/* Stats */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="mb-8 grid gap-4 sm:grid-cols-4">
           <Card className="p-6">
             <p className="text-3xl font-bold text-card-foreground">{pendingClaims.length}</p>
             <p className="text-sm text-muted-foreground">Pending Claims</p>
+          </Card>
+          <Card className="p-6">
+            <p className="text-3xl font-bold text-card-foreground">{approvedClaims.length}</p>
+            <p className="text-sm text-muted-foreground">Approved</p>
           </Card>
           <Card className="p-6">
             <p className="text-3xl font-bold text-card-foreground">{releasedToday}</p>
@@ -97,7 +111,25 @@ export default function VolunteerDashboardPage() {
           </Card>
         </div>
 
-        {/* Pending Releases Table */}
+        {/* Status Tabs */}
+        <div className="mb-4 flex gap-2">
+          <Button
+            variant={activeTab === "pending" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("pending")}
+          >
+            Pending ({pendingClaims.length})
+          </Button>
+          <Button
+            variant={activeTab === "approved" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("approved")}
+          >
+            Approved ({approvedClaims.length})
+          </Button>
+        </div>
+
+        {/* Releases Table */}
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -151,7 +183,9 @@ export default function VolunteerDashboardPage() {
                       </td>
                       <td className="p-3 sm:p-4">
                         <Link href={`/volunteer/release/${claim.id}`}>
-                          <Button size="sm" className="min-h-[36px] min-w-[100px] text-xs sm:text-sm">Review & Release</Button>
+                          <Button size="sm" className="min-h-[36px] min-w-[100px] text-xs sm:text-sm">
+                            {activeTab === "approved" ? "Review & Release" : "Review & Release"}
+                          </Button>
                         </Link>
                       </td>
                     </tr>
@@ -163,7 +197,13 @@ export default function VolunteerDashboardPage() {
 
                   {filteredClaims.length === 0 && (
                     <div className="p-12 text-center">
-                      <p className="text-muted-foreground">{isLoaded ? "No pending claims to review" : "Loading claims..."}</p>
+                      <p className="text-muted-foreground">
+                        {isLoaded
+                          ? activeTab === "pending"
+                            ? "No pending claims to review"
+                            : "No approved claims awaiting release"
+                          : "Loading claims..."}
+                      </p>
                     </div>
                   )}
         </Card>

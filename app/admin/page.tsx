@@ -23,7 +23,7 @@ import {
   Calendar,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { usersApi, ApiError, type UserListItem } from "@/lib/api-client"
+import { usersApi, auditLogsApi, ApiError, type UserListItem } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AdminDashboardPage() {
@@ -31,11 +31,14 @@ export default function AdminDashboardPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [users, setUsers] = useState<UserListItem[]>([])
+  const [auditCount, setAuditCount] = useState(0)
 
   useEffect(() => {
-    usersApi
-      .getAll()
-      .then((res) => setUsers(res.users))
+    Promise.all([usersApi.getAll(), auditLogsApi.getAll({ limit: 1 })])
+      .then(([usersRes, logsRes]) => {
+        setUsers(usersRes.users)
+        setAuditCount(logsRes.pagination?.total ?? 0)
+      })
       .catch((err) => {
         const message = err instanceof ApiError ? err.message : "Failed to load stats"
         toast({ title: "Error", description: message, variant: "destructive" })
@@ -104,7 +107,7 @@ export default function AdminDashboardPage() {
             { label: "Active Nodes", value: activeUsers, icon: Activity, color: "text-blue-500" },
             { label: "Secure Vaults", value: totalUploads, icon: Lock, color: "text-amber-500" },
             { label: "Verified Claims", value: totalClaims, icon: Fingerprint, color: "text-emerald-500" },
-            { label: "Audit Logs", value: "2.4k", icon: Eye, color: "text-purple-500" },
+            { label: "Audit Logs", value: auditCount >= 1000 ? `${(auditCount / 1000).toFixed(1)}k` : auditCount, icon: Eye, color: "text-purple-500" },
           ].map((stat, i) => (
             <Card
               key={i}

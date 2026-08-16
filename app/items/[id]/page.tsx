@@ -82,8 +82,6 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     )
   }
 
-  const uploadedByName = item.uploadedBy?.name || item.uploadedBy?.username || "a member"
-
   return (
     <div className="min-h-screen bg-background">
 
@@ -99,7 +97,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 <Image src={item.imageUrl || "/placeholder.svg"} alt={`${item.category} lost item photo`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
               </div>
             </Card>
-            <p className="text-sm text-muted-foreground">Uploaded by {uploadedByName}</p>
+            <p className="text-sm text-muted-foreground">Reported by a Vault Church member</p>
           </div>
 
           {/* Details Section */}

@@ -37,12 +37,12 @@ export default function ReleaseItemPage({ params }: { params: Promise<{ id: stri
   }, [id, toast])
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== "volunteer") {
+    if (!isAuthenticated || (user?.role !== "volunteer" && user?.role !== "admin")) {
       router.push("/login")
     }
   }, [isAuthenticated, user, router])
 
-  if (!isAuthenticated || user?.role !== "volunteer") {
+  if (!isAuthenticated || (user?.role !== "volunteer" && user?.role !== "admin")) {
     return null
   }
 

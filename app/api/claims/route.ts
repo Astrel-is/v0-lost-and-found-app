@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const where: any = {}
 
     // Validate status enum
-    const validStatuses = ["pending", "released", "rejected"]
+    const validStatuses = ["pending", "approved", "released", "rejected"]
     if (status && validStatuses.includes(status)) {
       where.status = status
     }
