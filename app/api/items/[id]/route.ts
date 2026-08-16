@@ -4,6 +4,7 @@ import { validateRouteId } from "@/lib/security"
 import { requireAuth } from "@/lib/auth-middleware"
 import { requireAdmin } from "@/lib/auth-middleware"
 import { updateItemSchema, validateAndSanitize } from "@/lib/validation"
+import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 
 // GET item by ID
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -28,11 +29,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       where: { id },
       include: {
         uploadedBy: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-          },
+          // Public responses never expose uploader PII; only staff see name/username.
+          select: isStaff
+            ? { id: true, name: true, username: true }
+            : { id: true },
         },
         claims: {
           // Only staff see claimant identity; regular users see the claim exists but not who filed it.
@@ -70,6 +70,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const authResult = await requireAuth(request)
     if (authResult instanceof NextResponse) {
       return authResult
+    }
+
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await rateLimit(clientId, { windowMs: 60000, maxRequests: 20 })
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 })
     }
 
     const { id } = await params
@@ -113,11 +119,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       data: updateData,
       include: {
         uploadedBy: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-          },
+          select: authResult.user.role === "admin" || authResult.user.role === "volunteer"
+            ? { id: true, name: true, username: true }
+            : { id: true },
         },
       },
     })
@@ -135,6 +139,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const authResult = await requireAdmin(request)
     if (authResult instanceof NextResponse) {
       return authResult
+    }
+
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await rateLimit(clientId, { windowMs: 60000, maxRequests: 20 })
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 })
     }
 
     const { id } = await params

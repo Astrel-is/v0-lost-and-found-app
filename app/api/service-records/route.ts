@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db"
 import { validateRouteId } from "@/lib/security"
 import { createServiceRecordSchema, validateAndSanitize } from "@/lib/validation"
 import { requireAuth } from "@/lib/auth-middleware"
+import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 
 // GET service records for a user
 export async function GET(request: NextRequest) {
@@ -49,6 +50,12 @@ export async function POST(request: NextRequest) {
     const authResult = await requireAuth(request)
     if (authResult instanceof NextResponse) {
       return authResult
+    }
+
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await rateLimit(clientId, { windowMs: 60000, maxRequests: 20 })
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 })
     }
 
     const body = await request.json()

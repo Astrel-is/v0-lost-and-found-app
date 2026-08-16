@@ -119,15 +119,15 @@ vercel --prod --confirm
 
 ### Admin
 - Email: admin@vaultchurch.org
-- Password: AdminVault123!@#
+- Password: <bootstrap-password>
 
 ### Volunteer
 - Email: volunteer@vaultchurch.org
-- Password: Volunteer@2024#Secure
+- Password: <bootstrap-password>
 
 ### Regular User
 - Email: john.doe@vaultchurch.org
-- Password: SecureUser123!@#
+- Password: <bootstrap-password>
 
 ## Database Backup Strategy
 

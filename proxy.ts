@@ -1,57 +1,8 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-
-const enc = new TextEncoder()
-
-function base64UrlDecodeBytes(input: string): Uint8Array {
-  const b64 = input.replace(/-/g, "+").replace(/_/g, "/")
-  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4)
-  let bin: string
-  try {
-    bin = atob(padded)
-  } catch {
-    return new Uint8Array(0)
-  }
-  const bytes = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  return bytes
-}
-
-function base64UrlDecodeString(input: string): string {
-  return new TextDecoder().decode(base64UrlDecodeBytes(input))
-}
-
-async function verifyJwt(token: string, secret: string): Promise<{ sub: string; role: string; exp: number } | null> {
-  const parts = token.split(".")
-  if (parts.length !== 3) return null
-  const [header, payload, signature] = parts
-
-  try {
-    const key = await crypto.subtle.importKey(
-      "raw",
-      enc.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    )
-    const expectedSig = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(`${header}.${payload}`)))
-    const actualSig = base64UrlDecodeBytes(signature)
-
-    if (actualSig.length !== expectedSig.length) return null
-    let diff = 0
-    for (let i = 0; i < expectedSig.length; i++) {
-      diff |= expectedSig[i] ^ actualSig[i]
-    }
-    if (diff !== 0) return null
-
-    const decoded = JSON.parse(base64UrlDecodeString(payload)) as Partial<{ sub: string; role: string; exp: number }>
-    if (!decoded.sub || !decoded.role || typeof decoded.exp !== "number") return null
-    if (decoded.exp <= Math.floor(Date.now() / 1000)) return null
-    return { sub: decoded.sub, role: decoded.role, exp: decoded.exp }
-  } catch {
-    return null
-  }
-}
+import crypto from "crypto"
+import { verifyAccessToken } from "@/lib/jwt"
+import { prisma } from "@/lib/db"
 
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next()
@@ -61,15 +12,19 @@ export async function proxy(request: NextRequest) {
   response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
   response.headers.set("X-Frame-Options", "DENY")
   response.headers.set("X-Content-Type-Options", "nosniff")
-  response.headers.set("X-XSS-Protection", "1; mode=block")
   response.headers.set("Referrer-Policy", "no-referrer")
   response.headers.set("X-Permitted-Cross-Domain-Policies", "none")
 
-  // Enhanced CSP - Allow audio for background music
+  // Strict CSP using a per-request nonce + 'strict-dynamic'. Next.js reads the
+  // nonce from the CSP header and applies it to its own inline scripts/styles
+  // automatically. 'unsafe-eval' is only needed in dev (React debug eval).
+  const isDev = process.env.NODE_ENV !== "production"
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
   response.headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; audio-src 'self' https:; connect-src 'self'; frame-ancestors 'none'"
+    `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: https: blob:; font-src 'self' data:; audio-src 'self' https:; connect-src 'self'; frame-ancestors 'none'`
   )
+  response.headers.set("x-nonce", nonce)
 
   // Permissions Policy - Deny dangerous features
   response.headers.set(
@@ -92,11 +47,30 @@ export async function proxy(request: NextRequest) {
 
   if (isAdminPath || isVolunteerPath) {
     const token = request.cookies.get("auth_token")?.value
-    const secret = process.env.JWT_SECRET
-    const payload = token && secret ? await verifyJwt(token, secret) : null
+    const payload = token ? verifyAccessToken(token) : null
 
-    const isAdmin = payload?.role === "admin"
-    const isStaff = payload && (payload.role === "admin" || payload.role === "volunteer")
+    // Re-validate against the database: reject stale/revoked sessions (tokenVersion
+    // bumped on password change) and reflect the user's CURRENT role, so a demoted
+    // or deleted account loses privileged page access immediately rather than for
+    // the remainder of the (up to 8h) token lifetime.
+    let currentRole: string | null = null
+    if (payload && prisma) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: payload.sub },
+          select: { role: true, tokenVersion: true },
+        })
+        if (user && user.tokenVersion === payload.tokenVersion) {
+          currentRole = user.role
+        }
+      } catch {
+        // DB unavailable — deny privileged access rather than granting by default.
+        currentRole = null
+      }
+    }
+
+    const isAdmin = currentRole === "admin"
+    const isStaff = currentRole === "admin" || currentRole === "volunteer"
 
     if ((isAdminPath && !isAdmin) || (isVolunteerPath && !isStaff)) {
       const url = request.nextUrl.clone()

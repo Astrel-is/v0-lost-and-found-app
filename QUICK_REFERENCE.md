@@ -79,15 +79,15 @@ PRISMA_DATABASE_URL="postgresql://..."  # If different from above
 \`\`\`
 Admin:
   Email: admin@vaultchurch.org
-  Pass:  AdminVault123!@#
+  Pass:  <bootstrap-password>
 
 Volunteer:
   Email: volunteer@vaultchurch.org
-  Pass:  Volunteer@2024#Secure
+  Pass:  <bootstrap-password>
 
 User:
   Email: john.doe@vaultchurch.org
-  Pass:  SecureUser123!@#
+  Pass:  <bootstrap-password>
 \`\`\`
 
 ---
@@ -160,7 +160,7 @@ GET    /api/audit-logs               - View logs (admin)
 ✅ Number required
 ✅ Special character required (!@#$%^&*)
 
-Example: AdminVault123!@#
+Example: <bootstrap-password>
 \`\`\`
 
 ---

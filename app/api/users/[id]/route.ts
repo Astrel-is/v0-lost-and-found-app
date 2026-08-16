@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db"
 import { validateRouteId } from "@/lib/security"
 import { requireAdmin, requireAuth } from "@/lib/auth-middleware"
 import { updateUserSchema, validateAndSanitize } from "@/lib/validation"
+import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 
 // GET user by ID
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -57,6 +58,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return authResult
     }
 
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await rateLimit(clientId, { windowMs: 60000, maxRequests: 20 })
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 })
+    }
+
     const { id } = await params
     
     // Validate ID to prevent path traversal
@@ -102,6 +109,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const authResult = await requireAuth(request)
     if (authResult instanceof NextResponse) {
       return authResult
+    }
+
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await rateLimit(clientId, { windowMs: 60000, maxRequests: 20 })
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 })
     }
 
     const { id } = await params

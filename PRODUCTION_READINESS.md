@@ -39,22 +39,22 @@ The Vault Church Lost & Found application has been successfully migrated from a 
 ```
 Admin Account:
   Username: admin
-  Password: SecureAdmin123!
+  Password: <bootstrap-password>
   Role: admin
   
 Volunteer Account:
   Username: tomanderson
-  Password: VolunteerPass123!
+  Password: <bootstrap-password>
   Role: volunteer
   
 Regular User Account:
   Username: johndoe
-  Password: UserPass123!
+  Password: <bootstrap-password>
   Role: user
 
 Additional Volunteers:
-  - emilyrodriguez / VolunteerPass123!
-  - jenniferwilliams / VolunteerPass123!
+  - emilyrodriguez / <bootstrap-password>
+  - jenniferwilliams / <bootstrap-password>
 ```
 
 **Files Modified**:
@@ -332,17 +332,17 @@ NEXTAUTH_SECRET=[generate with: openssl rand -hex 32]
 ```
 Admin Account:
   Username: admin
-  Password: SecureAdmin123!
+  Password: <bootstrap-password>
   Access: Full system admin panel
 
 Volunteer:
   Username: tomanderson
-  Password: VolunteerPass123!
+  Password: <bootstrap-password>
   Access: Volunteer dashboard, claim approval
 
 Regular User:
   Username: johndoe
-  Password: UserPass123!
+  Password: <bootstrap-password>
   Access: Item upload, claim submission
 ```
 

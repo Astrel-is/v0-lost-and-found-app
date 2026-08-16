@@ -20,6 +20,28 @@ describe("assertSameOrigin (CSRF)", () => {
     expect(assertSameOrigin(makeRequest({ host: "vault.example.com" }))).toBe(true)
   })
 
+  it("rejects a request with no Origin but a present Referer (privacy-mode browser)", () => {
+    expect(
+      assertSameOrigin(
+        makeRequest({ host: "vault.example.com", referer: "https://vault.example.com/login" })
+      )
+    ).toBe(false)
+  })
+
+  it("honors a configured NEXT_PUBLIC_SITE_URL allowlist over the Host header", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://vault.example.com"
+    try {
+      expect(
+        assertSameOrigin(makeRequest({ origin: "https://vault.example.com", host: "evil.example.com" }))
+      ).toBe(true)
+      expect(
+        assertSameOrigin(makeRequest({ origin: "https://other.example.com", host: "vault.example.com" }))
+      ).toBe(false)
+    } finally {
+      delete process.env.NEXT_PUBLIC_SITE_URL
+    }
+  })
+
   it("allows matching origin + host", () => {
     expect(assertSameOrigin(makeRequest({ origin: "https://vault.example.com", host: "vault.example.com" }))).toBe(true)
   })

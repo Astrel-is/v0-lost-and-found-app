@@ -57,12 +57,12 @@ Role: User
 Access: Item Upload, View Items, Submit Claims
 
 Username: sarahjohnson
-Password: password123
+Password: <bootstrap-password>
 Role: User
 Access: Item Upload, View Items, Submit Claims
 
 Username: michaelchen
-Password: password123
+Password: <bootstrap-password>
 Role: User
 Access: Item Upload, View Items, Submit Claims
 \`\`\`

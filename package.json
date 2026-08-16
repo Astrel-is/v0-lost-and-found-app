@@ -1,7 +1,7 @@
 {
   "name": "my-v0-project",
   "version": "0.1.0",
-"private": true,
+  "private": true,
   "packageManager": "pnpm@11.3.0",
   "scripts": {
     "build": "prisma generate && next build",
@@ -87,7 +87,7 @@
     "tsx": "^4.21.0",
     "tw-animate-css": "1.3.3",
     "typescript": "^5",
-    "vercel": "^58.9.4",
+    "vercel": "^59.1.3",
     "vitest": "^3.2.7"
   }
 }

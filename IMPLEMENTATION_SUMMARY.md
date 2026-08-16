@@ -316,8 +316,8 @@ export async function POST(request: NextRequest) {
 Admin:     admin / <bootstrap-password>
 Volunteer: volunteer / <bootstrap-password>
 User 1:    johndoe / <bootstrap-password>
-User 2:    sarahjohnson / password123
-User 3:    michaelchen / password123
+User 2:    sarahjohnson / <bootstrap-password>
+User 3:    michaelchen / <bootstrap-password>
 \`\`\`
 
 ### Production Environment

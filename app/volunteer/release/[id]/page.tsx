@@ -74,6 +74,28 @@ export default function ReleaseItemPage({ params }: { params: Promise<{ id: stri
 
   const item = claim.item
 
+  const handleApprove = async () => {
+    if (!user || !item || !claim) return
+
+    setIsSubmitting(true)
+    try {
+      await claimsApi.update(claim.id, {
+        status: "approved",
+        releaseNotes: notes || undefined,
+      })
+      setClaim({ ...claim, status: "approved" })
+      toast({
+        title: "Claim Approved",
+        description: "The claim is approved. The item is now locked until release or rejection.",
+      })
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to approve claim"
+      toast({ title: "Error", description: message, variant: "destructive" })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const handleRelease = async () => {
     if (!user || !item || !claim) return
 
@@ -238,10 +260,12 @@ export default function ReleaseItemPage({ params }: { params: Promise<{ id: stri
         {/* Release Form */}
         <Card className="mt-6 p-6">
           <h2 className="mb-4 text-xl font-semibold text-card-foreground">
-            {claim.status === "pending" ? "Review Claim" : "Claim Status"}
+            {claim.status === "pending" || claim.status === "approved"
+              ? "Review Claim"
+              : "Claim Status"}
           </h2>
           <div className="space-y-4">
-            {claim.status === "pending" && (
+            {(claim.status === "pending" || claim.status === "approved") && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="review-notes">Release / Review Notes (Optional)</Label>
@@ -253,11 +277,23 @@ export default function ReleaseItemPage({ params }: { params: Promise<{ id: stri
                     onChange={(e) => setNotes(e.target.value)}
                   />
                 </div>
-                <div className="flex gap-3">
-                  <Button onClick={handleRelease} size="lg" className="flex-1" disabled={isSubmitting}>
-                    <CheckCircle className="mr-2 h-5 w-5" />
-                    Release Item
-                  </Button>
+                {claim.status === "approved" && (
+                  <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                    Claim approved — the item is locked. You can now release it to the claimant or reject it.
+                  </div>
+                )}
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  {claim.status === "pending" ? (
+                    <Button onClick={handleApprove} size="lg" className="flex-1" disabled={isSubmitting}>
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      Approve Claim
+                    </Button>
+                  ) : (
+                    <Button onClick={handleRelease} size="lg" className="flex-1" disabled={isSubmitting}>
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      Release Item
+                    </Button>
+                  )}
                   <Button onClick={handleReject} size="lg" variant="destructive" className="flex-1" disabled={isSubmitting}>
                     Reject Claim
                   </Button>

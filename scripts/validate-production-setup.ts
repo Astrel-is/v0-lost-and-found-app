@@ -12,10 +12,11 @@ const REQUIRED_USERS = {
   user: "johndoe",
 }
 
+// Passwords must come from the environment — never hardcode credentials.
 const VALID_PASSWORDS = {
-  admin: "SecureAdmin123!",
-  volunteer: "VolunteerPass123!",
-  user: "UserPass123!",
+  admin: process.env.BOOTSTRAP_ADMIN_PASSWORD || "",
+  volunteer: process.env.BOOTSTRAP_VOLUNTEER_PASSWORD || "",
+  user: process.env.BOOTSTRAP_USER_PASSWORD || "",
 }
 
 async function validateDatabaseConnection() {
@@ -249,9 +250,9 @@ async function main() {
     if (allPassed) {
       console.log("\n✅ All validations passed! System is ready for production.")
       console.log("\nTest Login Credentials:")
-      console.log("  Admin: admin / SecureAdmin123!")
-      console.log("  Volunteer: tomanderson / VolunteerPass123!")
-      console.log("  User: johndoe / UserPass123!")
+      console.log("  Admin: admin / <bootstrap-password>")
+      console.log("  Volunteer: tomanderson / <bootstrap-password>")
+      console.log("  User: johndoe / <bootstrap-password>")
       process.exit(0)
     } else {
       console.log("\n❌ Some validations failed. Please fix the issues above.")
