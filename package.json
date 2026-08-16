@@ -1,8 +1,8 @@
 {
   "name": "my-v0-project",
   "version": "0.1.0",
-  "private": true,
-"packageManager": "pnpm@11.3.0",
+"private": true,
+  "packageManager": "pnpm@11.3.0",
   "scripts": {
     "build": "prisma generate && next build",
     "db:generate": "prisma generate",
