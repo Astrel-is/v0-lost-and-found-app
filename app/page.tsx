@@ -77,9 +77,12 @@ export default function HomePage() {
             </Link>
             <Link href="/browse">
               <Button variant="outline" size="lg" className="font-semibold hover:border-primary transition-all duration-300 px-8">
-                
-
-      
+                Browse Assets
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/50 glass-effect py-12">
@@ -102,7 +105,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-border/50 pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; 2026 Vault Church. Shielded in Silence. Fortified for Eternity.</p>
+            <p>& copy; 2026 Vault Church. Shielded in Silence. Fortified for Eternity.</p>
           </div>
         </div>
       </footer>
