@@ -105,7 +105,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-border/50 pt-8 text-center text-sm text-muted-foreground">
-            <p>& copy; 2026 Vault Church. Shielded in Silence. Fortified for Eternity.</p>
+            <p>&copy; 2026 Vault Church. Shielded in Silence. Fortified for Eternity.</p>
           </div>
         </div>
       </footer>
