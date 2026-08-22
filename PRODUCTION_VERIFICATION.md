@@ -16,9 +16,9 @@
 - [x] All models defined (User, Item, Claim, Location, AuditLog, etc.)
 - [x] Database migrations ready
 - [x] Production seed data prepared:
-  - Admin: admin@vaultchurch.org / AdminVault123!@#
-  - Volunteer: volunteer@vaultchurch.org / Volunteer@2024#Secure
-  - Users: john.doe@, sarah.johnson@, michael.chen@, david.park@ / SecureUser123!@#
+  - Admin: admin@vaultchurch.org / <bootstrap-password>
+  - Volunteer: volunteer@vaultchurch.org / <bootstrap-password>
+  - Users: john.doe@, sarah.johnson@, michael.chen@, david.park@ / <bootstrap-password>
 - [x] Connection pooling enabled
 - [x] Indexes created on critical columns
 

@@ -111,13 +111,20 @@ export const createClaimSchema = z.object({
 })
 
 export const updateClaimSchema = z.object({
-  status: z.enum(["pending", "released", "rejected"]).optional(),
+  status: z.enum(["pending", "approved", "released", "rejected"]).optional(),
   releaseNotes: z.string().max(500).trim().optional(),
   releasedBy: z.string().max(100).trim().optional(),
   volunteerId: z.string().min(1).optional(),
 })
 
 // Order validation schemas
+export const createOrderSchema = z.object({
+  title: z.string().min(1).max(200).trim(),
+  message: z.string().min(1).max(2000).trim(),
+  priority: z.enum(["low", "medium", "high"]).default("medium"),
+  userId: z.string().min(1),
+})
+
 export const updateOrderSchema = z.object({
   status: z.enum(["read"]),
 })

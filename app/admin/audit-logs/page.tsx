@@ -63,6 +63,31 @@ export default function AuditLogsPage() {
     return matchesSearch && matchesType && matchesSeverity
   })
 
+  const handleExport = () => {
+    const escapeCsv = (value: string) => `"${String(value ?? "").replace(/"/g, '""')}"`
+    const rows = [
+      ["Timestamp", "Type", "Severity", "User", "Action", "Details"],
+      ...filteredLogs.map((log) => [
+        new Date(log.createdAt || log.timestamp).toISOString(),
+        log.type,
+        log.severity,
+        log.user?.name || log.username || "system",
+        log.action,
+        log.details || "",
+      ]),
+    ]
+    const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "critical":
@@ -98,7 +123,7 @@ export default function AuditLogsPage() {
                 Complete immutable record of all system events and security activities
               </p>
             </div>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={handleExport} disabled={filteredLogs.length === 0}>
               <Download className="w-4 h-4" />
               Export Logs
             </Button>

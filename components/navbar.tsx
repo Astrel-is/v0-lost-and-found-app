@@ -23,15 +23,27 @@ export function Navbar({ role = "user" }: NavbarProps) {
     { href: "/my-uploads", label: "My Uploads" },
   ]
 
-  const volunteerLinks = [{ href: "/volunteer/dashboard", label: "Release Dashboard" }]
+  const volunteerLinks = [
+    { href: "/volunteer/dashboard", label: "Release Dashboard" },
+    { href: "/browse", label: "Browse Items" },
+    { href: "/upload", label: "Upload Item" },
+    { href: "/my-claims", label: "My Claims" },
+  ]
 
   const adminLinks = [
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/items", label: "Items" },
     { href: "/admin/claims", label: "Claims" },
+    { href: "/admin/locations", label: "Locations" },
+    { href: "/admin/missions", label: "Missions" },
+    { href: "/admin/orders", label: "Orders" },
+    { href: "/admin/donations", label: "Donations" },
     { href: "/admin/releases", label: "Release Logs" },
     { href: "/admin/users", label: "User Activity" },
-    { href: "/admin/donations", label: "Donation Queue" },
+    { href: "/admin/playbooks", label: "Playbooks" },
+    { href: "/admin/meeting-minutes", label: "Meeting Minutes" },
+    { href: "/admin/audit-logs", label: "Audit Logs" },
+    { href: "/admin/settings", label: "Settings" },
   ]
 
   let links = userLinks

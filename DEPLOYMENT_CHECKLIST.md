@@ -157,7 +157,7 @@ https://yourdomain.com
 
 # Test login with:
 Email: admin@vaultchurch.org
-Password: AdminVault123!@#
+Password: <bootstrap-password>
 
 # Verify features:
 - [ ] Dashboard loads

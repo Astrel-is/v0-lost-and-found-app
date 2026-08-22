@@ -19,8 +19,9 @@ export default function AdminDonationsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [items, setItems] = useState<any[]>([])
+  const [donatingId, setDonatingId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadItems = () => {
     itemsApi
       .getAll({ limit: 100 })
       .then((res) => setItems(res.items))
@@ -28,7 +29,29 @@ export default function AdminDonationsPage() {
         const message = err instanceof ApiError ? err.message : "Failed to load items"
         toast({ title: "Error", description: message, variant: "destructive" })
       })
-  }, [toast])
+  }
+
+  useEffect(() => {
+    loadItems()
+  }, [])
+
+  const handleMarkDonated = async (item: any) => {
+    if (!confirm(`Mark "${item.category}" as donated? This removes it from the active listing.`)) return
+    setDonatingId(item.id)
+    try {
+      await itemsApi.update(item.id, { status: "donated" })
+      toast({
+        title: "Item Donated",
+        description: `"${item.category}" has been marked as donated.`,
+      })
+      loadItems()
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to mark item as donated"
+      toast({ title: "Error", description: message, variant: "destructive" })
+    } finally {
+      setDonatingId(null)
+    }
+  }
 
   // Protect route - require authentication and admin role
   useEffect(() => {
@@ -153,6 +176,14 @@ export default function AdminDonationsPage() {
                           View Item
                         </Button>
                       </Link>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={donatingId === item.id}
+                        onClick={() => handleMarkDonated(item)}
+                      >
+                        {donatingId === item.id ? "Marking..." : "Mark Donated"}
+                      </Button>
                     </div>
                   </div>
                 )

@@ -11,17 +11,17 @@
 
 ### Admin Account
 - Username: `admin@vaultchurch.org`
-- Password: `AdminVault123!@#`
+- Password: `<bootstrap-password>`
 - Role: Full system access
 
 ### Volunteer Account
 - Username: `volunteer@vaultchurch.org`
-- Password: `Volunteer@2024#Secure`
+- Password: `<bootstrap-password>`
 - Role: Claims processing, volunteer management
 
 ### Regular User Account
 - Username: `john.doe@vaultchurch.org` (and others)
-- Password: `SecureUser123!@#`
+- Password: `<bootstrap-password>`
 - Role: Item upload, claim submission
 
 ## FEATURE MATRIX

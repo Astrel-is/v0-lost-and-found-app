@@ -204,7 +204,7 @@ npm run dev
 ### Step 5: Login
 Use test credentials:
 - Email: admin@vaultchurch.org
-- Password: AdminVault123!@#
+- Password: <bootstrap-password>
 
 ---
 
@@ -395,10 +395,10 @@ After setup, login with:
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@vaultchurch.org | AdminVault123!@# |
-| Volunteer | volunteer@vaultchurch.org | Volunteer@2024#Secure |
-| User | john.doe@vaultchurch.org | SecureUser123!@# |
-| User | sarah.johnson@vaultchurch.org | SecureUser123!@# |
+| Admin | admin@vaultchurch.org | <bootstrap-password> |
+| Volunteer | volunteer@vaultchurch.org | <bootstrap-password> |
+| User | john.doe@vaultchurch.org | <bootstrap-password> |
+| User | sarah.johnson@vaultchurch.org | <bootstrap-password> |
 
 ---
 

@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { comparePassword } from "@/lib/db"
 import { loginSchema, validateAndSanitize } from "@/lib/validation"
-import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
+import { rateLimit, resetRateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { signAccessToken } from "@/lib/jwt"
 import { assertSameOrigin } from "@/lib/security"
+
+// A valid bcrypt hash of a throwaway string. Used to equalize the bcrypt timing
+// for unknown usernames so an attacker cannot enumerate accounts via response time.
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$JtcNr0iq/uWvfuMZPhaA5.joby.YGJAM5gDRs6Yr/oTKwTUwmLgtO"
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+const MAX_LOGIN_FAILURES = 5
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,14 +21,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden - Cross-site request rejected" }, { status: 403 })
     }
 
-    // Rate limiting - stricter for login (5 attempts per minute)
+    // Rate limiting - stricter for login (5 attempts per minute per client).
     const clientId = getClientIdentifier(request)
     const rateLimitResult = await rateLimit(clientId, { windowMs: 60000, maxRequests: 5 })
-    
+
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: "Too many login attempts. Please try again later." },
-        { 
+        {
           status: 429,
           headers: {
             "X-RateLimit-Limit": "5",
@@ -48,23 +56,60 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Account lockout: after MAX_LOGIN_FAILURES failed attempts within the
+    // window, the account is locked until the window elapses. Keyed on the
+    // username (not IP) so distributed brute-force from many IPs is throttled.
+    const lockoutKey = `login-fail:${username}`
+    const lockoutCheck = await rateLimit(lockoutKey, {
+      windowMs: LOGIN_WINDOW_MS,
+      maxRequests: MAX_LOGIN_FAILURES,
+    })
+    if (!lockoutCheck.allowed) {
+      await prisma.auditLog.create({
+        data: {
+          type: "login",
+          action: "Login blocked",
+          details: `Login for '${username}' blocked by lockout until ${new Date(lockoutCheck.resetTime).toISOString()}`,
+          severity: "warning",
+        },
+      })
+      return NextResponse.json(
+        {
+          error: `Account temporarily locked. Try again after ${new Date(lockoutCheck.resetTime).toLocaleTimeString()}.`,
+        },
+        { status: 429 }
+      )
+    }
+
+    const recordFailure = async (reason: string) => {
+      await prisma.auditLog.create({
+        data: {
+          type: "login",
+          action: "Login failed",
+          details: `Failed login for '${username}': ${reason}`,
+          severity: "warning",
+        },
+      })
+    }
+
     try {
       const user = await prisma.user.findUnique({
         where: { username },
       })
 
-      if (!user) {
-        console.log("[v0] Login failed: User not found -", username)
+      // Always run a bcrypt compare (real user's hash or a dummy hash) so the
+      // response time does not reveal whether the username exists.
+      const passwordHash = user?.password ?? DUMMY_PASSWORD_HASH
+      const isValidPassword = await comparePassword(password, passwordHash)
+
+      if (!user || !isValidPassword) {
+        console.log("[v0] Login failed for user:", username)
+        await recordFailure(user ? "Invalid password" : "Unknown username")
         return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
       }
 
-      // Verify password with bcrypt
-      const isValidPassword = await comparePassword(password, user.password)
-
-      if (!isValidPassword) {
-        console.log("[v0] Login failed: Invalid password for user -", username)
-        return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
-      }
+      // Clear the failed-attempt counter on success.
+      await resetRateLimit(lockoutKey)
 
       // Add audit log for successful login
       await prisma.auditLog.create({

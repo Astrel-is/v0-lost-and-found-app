@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const where: any = {}
 
     // Validate status enum
-    const validStatuses = ["pending", "released", "rejected"]
+    const validStatuses = ["pending", "approved", "released", "rejected"]
     if (status && validStatuses.includes(status)) {
       where.status = status
     }
@@ -140,6 +140,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Item is not available for claiming" }, { status: 400 })
     }
 
+    // Prevent the uploader from claiming their own item.
+    if (item.uploadedById === claimantId) {
+      return NextResponse.json({ error: "You cannot claim an item you uploaded" }, { status: 400 })
+    }
+
     // Get claimant info
     const claimant = await prisma.user.findUnique({
       where: { id: claimantId },
@@ -173,13 +178,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Update item status
-    await prisma.item.update({
-      where: { id: itemId },
-      data: { status: "claimed" },
-    })
-
-    // Update user stats
+    // Update user stats (item stays "available" until a staff member approves
+    // the claim, so an unapproved claim can't lock the item for other users)
     await prisma.user.update({
       where: { id: claimantId },
       data: {

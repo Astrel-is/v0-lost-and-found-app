@@ -103,10 +103,10 @@ After successful setup, you can login with:
 
 | Role | Username | Password |
 |------|----------|----------|
-| Admin | admin@vaultchurch.org | AdminVault123!@# |
-| Volunteer | volunteer@vaultchurch.org | Volunteer@2024#Secure |
-| User | john.doe@vaultchurch.org | SecureUser123!@# |
-| User | sarah.johnson@vaultchurch.org | SecureUser123!@# |
+| Admin | admin@vaultchurch.org | <bootstrap-password> |
+| Volunteer | volunteer@vaultchurch.org | <bootstrap-password> |
+| User | john.doe@vaultchurch.org | <bootstrap-password> |
+| User | sarah.johnson@vaultchurch.org | <bootstrap-password> |
 
 ### Database Schema Overview
 

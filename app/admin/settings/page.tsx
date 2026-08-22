@@ -14,6 +14,7 @@ export default function AdminSettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [auditLogs, setAuditLogs] = useState<any[]>([])
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     auditLogsApi
@@ -23,11 +24,17 @@ export default function AdminSettingsPage() {
         const message = err instanceof ApiError ? err.message : "Failed to load audit logs"
         toast({ title: "Error", description: message, variant: "destructive" })
       })
+      .finally(() => setIsLoaded(true))
   }, [toast])
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== "admin") {
+    if (!isAuthenticated) {
       router.push("/login")
+      return
+    }
+    if (user?.role !== "admin") {
+      router.push("/dashboard")
+      return
     }
   }, [isAuthenticated, user, router])
 
@@ -48,6 +55,13 @@ export default function AdminSettingsPage() {
     return `${days}d ago`
   }
 
+  const eventCount = auditLogs.length
+  const alerts = auditLogs.filter((l) => l.severity === "error" || l.severity === "critical").length
+  const recentEventCount = auditLogs.filter((l) => {
+    const diff = Date.now() - new Date(l.timestamp || l.createdAt).getTime()
+    return diff < 24 * 60 * 60 * 1000
+  }).length
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-6 sm:py-8 pb-24 sm:pb-8">
@@ -55,8 +69,8 @@ export default function AdminSettingsPage() {
           <div className="flex items-center gap-3 mb-4">
             <BackButton fallbackHref="/admin" />
           </div>
-          <h1 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground">System Settings</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Configure system-wide settings and preferences</p>
+          <h1 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground">System Status</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Live status and recent security events</p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3">
@@ -67,19 +81,28 @@ export default function AdminSettingsPage() {
                 System Health
               </h2>
               <p className="text-xs text-muted-foreground font-medium mb-6">
-                Live status of the Vault operations layer
+                Live status derived from the audit stream
               </p>
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vault Integrity</span>
-                  <span className="text-emerald-500 font-bold font-mono">100.0%</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 w-full animate-pulse" />
-                </div>
-                <div className="flex justify-between text-sm pt-2">
                   <span className="text-muted-foreground">Audit Stream</span>
-                  <span className="text-primary font-bold font-mono">ACTIVE</span>
+                  <span className="text-emerald-500 font-bold font-mono">ACTIVE</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Events (last 24h)</span>
+                  <span className="text-primary font-bold font-mono">{recentEventCount}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Open Alerts</span>
+                  <span className={`font-bold font-mono ${alerts > 0 ? "text-destructive" : "text-emerald-500"}`}>
+                    {alerts}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Last Event</span>
+                  <span className="font-bold font-mono text-card-foreground">
+                    {isLoaded && eventCount > 0 ? getTimeAgo(auditLogs[0].timestamp || auditLogs[0].createdAt) : "—"}
+                  </span>
                 </div>
               </div>
             </Card>

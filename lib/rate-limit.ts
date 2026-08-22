@@ -163,6 +163,25 @@ async function rateLimitShared(
   }
 }
 
+// Clear the counter for an identifier (e.g. reset failed-login attempts after a
+// successful login). Best-effort: failures are swallowed so a stale counter can
+// never break the happy path.
+export async function resetRateLimit(identifier: string): Promise<void> {
+  if (!prisma) {
+    delete store[identifier]
+    return
+  }
+  try {
+    await ensureRateLimitTable()
+    await prisma.$executeRaw`
+      DELETE FROM rate_limit_counters
+      WHERE rate_key = ${identifier}
+    `
+  } catch {
+    // Ignore — the limiter is defense-in-depth, not a hard dependency.
+  }
+}
+
 // Get client identifier from request.
 // Keys on the session user id when a valid auth_token cookie is present so a
 // shared IP (e.g. the whole church office behind NAT) isn't throttled as one
@@ -174,8 +193,14 @@ export function getClientIdentifier(request: NextRequest): string {
     if (payload?.sub) return `user:${payload.sub}`
   }
 
-  // Fall back to IP address
-  const forwarded = request.headers.get("x-forwarded-for")
-  const ip = forwarded ? forwarded.split(",")[0] : request.headers.get("x-real-ip") || "unknown"
-  return `ip:${ip}`
+  // Fall back to IP address. Never trust the client-supplied first X-Forwarded-For
+  // entry — on Vercel/proxies the real client IP is the LAST entry of the chain
+  // (or x-vercel-forwarded-for / x-real-ip). Using the first entry lets an
+  // attacker rotate spoofed IPs to defeat per-IP rate limits entirely.
+  const realIp =
+    request.headers.get("x-vercel-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",").pop()?.trim() ||
+    "unknown"
+  return `ip:${realIp}`
 }

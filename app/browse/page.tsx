@@ -4,9 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ItemCard } from "@/components/item-card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Filter } from "lucide-react"
+import { Search } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { itemsApi, locationsApi, ApiError, type Item, type Location } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
@@ -106,10 +105,6 @@ export default function BrowsePage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="gap-2 bg-transparent">
-              <Filter className="h-4 w-4" />
-              Filters
-            </Button>
           </div>
 
           <div className="flex flex-wrap gap-3 sm:gap-4">

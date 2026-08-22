@@ -5,6 +5,9 @@ import { prisma, hashPassword } from "../lib/db"
 import { signAccessToken } from "../lib/jwt"
 import * as usersRoute from "../app/api/users/route"
 import * as itemsRoute from "../app/api/items/route"
+import * as itemByIdRoute from "../app/api/items/[id]/route"
+import * as claimsRoute from "../app/api/claims/route"
+import * as claimByIdRoute from "../app/api/claims/[id]/route"
 import * as ordersRoute from "../app/api/orders/route"
 import * as orderByIdRoute from "../app/api/orders/[id]/route"
 import * as missionsRoute from "../app/api/missions/route"
@@ -479,6 +482,103 @@ describe("endpoint role authorization (real DB)", () => {
 
     const gone = await prisma.meetingMinutes.findUnique({ where: { id: minutes.id } })
     expect(gone).toBeNull()
+  })
+
+  it("claim flow: self-claims rejected, item stays available until staff approval", async () => {
+    const uploader = await createUser(`authz_uploader_${SUFFIX}`, "user")
+    const claimant = users.user
+
+    const created = (await itemsRoute.POST(
+      cookieRequest("http://localhost/api/items", {
+        token: tokenFor(uploader),
+        method: "POST",
+        origin: "http://localhost",
+        body: {
+          category: "Phone",
+          color: "black",
+          location: "Lobby",
+          dateFounded: new Date().toISOString(),
+          imageUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        },
+      }),
+    )) as NextResponse
+    expect(created.status).toBe(200)
+    const item = (await created.json()).item
+    expect(item.uploadedById).toBe(uploader.id)
+
+    // A regular user viewing the item must not see the uploader's PII.
+    const detail = (await itemByIdRoute.GET(
+      cookieRequest(`http://localhost/api/items/${item.id}`, { token: tokenFor(claimant) }),
+      { params: Promise.resolve({ id: item.id }) },
+    )) as NextResponse
+    expect(detail.status).toBe(200)
+    const detailItem = (await detail.json()).item
+    expect(detailItem.uploadedBy).toEqual({ id: uploader.id })
+
+    const proofImage =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+    // The uploader cannot claim their own item.
+    const selfClaim = (await claimsRoute.POST(
+      cookieRequest("http://localhost/api/claims", {
+        token: tokenFor(uploader),
+        method: "POST",
+        origin: "http://localhost",
+        body: { itemId: item.id, proofImage, claimantId: uploader.id },
+      }),
+    )) as NextResponse
+    expect(selfClaim.status).toBe(400)
+
+    // A regular user's claim is accepted, but the item stays available.
+    const claimRes = (await claimsRoute.POST(
+      cookieRequest("http://localhost/api/claims", {
+        token: tokenFor(claimant),
+        method: "POST",
+        origin: "http://localhost",
+        body: { itemId: item.id, proofImage, claimantId: claimant.id },
+      }),
+    )) as NextResponse
+    expect(claimRes.status).toBe(200)
+    const claim = (await claimRes.json()).claim
+    expect(claim.claimantId).toBe(claimant.id)
+    expect(claim.status).toBe("pending")
+
+    const afterClaim = await prisma.item.findUnique({ where: { id: item.id } })
+    expect(afterClaim?.status).toBe("available")
+
+    // Staff approval locks the item.
+    const approveRes = (await claimByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/claims/${claim.id}`, {
+        token: tokenFor(users.volunteer),
+        method: "PATCH",
+        origin: "http://localhost",
+        body: { status: "approved" },
+      }),
+      { params: Promise.resolve({ id: claim.id }) },
+    )) as NextResponse
+    expect(approveRes.status).toBe(200)
+
+    const afterApprove = await prisma.item.findUnique({ where: { id: item.id } })
+    expect(afterApprove?.status).toBe("claimed")
+
+    // Rejection after approval frees the item back up.
+    const rejectRes = (await claimByIdRoute.PATCH(
+      cookieRequest(`http://localhost/api/claims/${claim.id}`, {
+        token: tokenFor(users.volunteer),
+        method: "PATCH",
+        origin: "http://localhost",
+        body: { status: "rejected", releaseNotes: "Not yours" },
+      }),
+      { params: Promise.resolve({ id: claim.id }) },
+    )) as NextResponse
+    expect(rejectRes.status).toBe(200)
+
+    const afterReject = await prisma.item.findUnique({ where: { id: item.id } })
+    expect(afterReject?.status).toBe("available")
+
+    await prisma.claim.deleteMany({ where: { id: claim.id } })
+    await prisma.item.delete({ where: { id: item.id } })
+    await prisma.user.delete({ where: { id: uploader.id } })
   })
 })
 

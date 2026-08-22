@@ -50,6 +50,28 @@ export class ApiError extends Error {
   }
 }
 
+// Upload an image file to Vercel Blob via /api/upload. The route re-validates
+// the file server-side (MIME allowlist, 5MB cap, magic-byte verification) and
+// returns a public URL. Used for both item photos and claim proof photos.
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const response = await fetch(`${API_BASE}/upload`, {
+    method: "POST",
+    credentials: "same-origin",
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: "Upload failed" }))
+    throw new ApiError(response.status, err.error || "Upload failed")
+  }
+
+  const data = await response.json()
+  return data.url as string
+}
+
 async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit,
@@ -253,7 +275,7 @@ export const auditLogsApi = {
     if (params?.severity) searchParams.set("severity", params.severity)
     if (params?.limit) searchParams.set("limit", params.limit.toString())
     const query = searchParams.toString()
-    return fetchApi<{ logs: any[] }>(`/audit-logs${query ? `?${query}` : ""}`)
+    return fetchApi<{ logs: any[]; pagination?: { total: number } }>(`/audit-logs${query ? `?${query}` : ""}`)
   },
 }
 
@@ -285,6 +307,12 @@ export const releaseLogsApi = {
 // Orders API
 export const ordersApi = {
   getAll: () => fetchApi<{ orders: any[] }>("/orders"),
+
+  create: (data: { title: string; message: string; priority: string; userId: string }) =>
+    fetchApi<{ order: any; message: string }>("/orders", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   markRead: (id: string) =>
     fetchApi<{ order: any; message: string }>(`/orders/${id}`, {

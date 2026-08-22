@@ -162,6 +162,7 @@ export default function AdminItemsPage() {
                 <tr>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Item</th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Category</th>
+                  <th className="p-4 text-left text-sm font-medium text-muted-foreground">Color</th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Location</th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Date Found</th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Uploaded By</th>
@@ -180,14 +181,32 @@ export default function AdminItemsPage() {
                   filteredItems.map((item) => (
                     <tr key={item.id} className="border-b border-border last:border-0">
                       <td className="p-4">
-                        <div className="relative h-12 w-12 overflow-hidden rounded border border-border">
-                          <Image
-                            src={item.imageUrl || "/placeholder.svg"}
-                            alt={item.category}
-                            fill
-                            className="object-cover"
-                          />
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded border border-border">
+                            <Image
+                              src={item.imageUrl || "/placeholder.svg"}
+                              alt={item.category}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <Link
+                            href={`/items/${item.id}`}
+                            className="font-medium text-sm text-card-foreground hover:underline"
+                          >
+                            {item.category}
+                          </Link>
                         </div>
+                      </td>
+                      <td className="p-4 text-sm text-card-foreground">{item.category}</td>
+                      <td className="p-4 text-sm text-card-foreground">{item.color || "—"}</td>
+                      <td className="p-4 text-sm text-card-foreground">{item.location}</td>
+                      <td className="p-4 text-sm text-muted-foreground">
+                        {new Date(item.dateFounded).toLocaleDateString()}
+                      </td>
+                      <td className="p-4 text-sm text-card-foreground">{nameMap[item.uploadedBy.id] || "Unknown"}</td>
+                      <td className="p-4">
+                        <StatusBadge status={item.status} />
                       </td>
                       <td className="p-4">
                         <div className="flex gap-2">

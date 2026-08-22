@@ -53,9 +53,9 @@ async function setupDatabase() {
     console.log("  - Indexes: 15+\n")
 
     console.log("🔐 Test Credentials:")
-    console.log("  Admin:     admin@vaultchurch.org / AdminVault123!@#")
-    console.log("  Volunteer: volunteer@vaultchurch.org / Volunteer@2024#Secure")
-    console.log("  User:      john.doe@vaultchurch.org / SecureUser123!@#\n")
+    console.log("  Admin:     admin@vaultchurch.org / <bootstrap-password>")
+    console.log("  Volunteer: volunteer@vaultchurch.org / <bootstrap-password>")
+    console.log("  User:      john.doe@vaultchurch.org / <bootstrap-password>\n")
 
     console.log("📝 Next steps:")
     console.log("  1. Test the application locally: npm run dev")

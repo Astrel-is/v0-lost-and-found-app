@@ -78,13 +78,24 @@ describe("getClientIdentifier", () => {
   })
 
   it("ignores an invalid session cookie and falls back to IP", () => {
-    const id = getClientIdentifier(makeRequest({ "x-forwarded-for": "203.0.113.9" }, { auth_token: "garbage" }))
+    const id = getClientIdentifier(makeRequest({ "x-real-ip": "203.0.113.9" }, { auth_token: "garbage" }))
     expect(id).toBe("ip:203.0.113.9")
   })
 
-  it("keys on x-forwarded-for IP when no session is present", () => {
-    const id = getClientIdentifier(makeRequest({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" }))
-    expect(id).toBe("ip:203.0.113.9")
+  it("uses the LAST x-forwarded-for entry (proxy-appended real IP), never the client-supplied first", () => {
+    const id = getClientIdentifier(makeRequest({ "x-forwarded-for": "203.0.113.66, 198.51.100.7" }))
+    expect(id).toBe("ip:198.51.100.7")
+  })
+
+  it("prefers x-vercel-forwarded-for / x-real-ip over x-forwarded-for", () => {
+    const id = getClientIdentifier(
+      makeRequest({
+        "x-forwarded-for": "203.0.113.66, 198.51.100.7",
+        "x-vercel-forwarded-for": "203.0.113.200",
+        "x-real-ip": "203.0.113.9",
+      })
+    )
+    expect(id).toBe("ip:203.0.113.200")
   })
 
   it("falls back to x-real-ip", () => {

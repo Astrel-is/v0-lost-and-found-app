@@ -56,8 +56,13 @@ export default function AdminPlaybooksPage() {
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== "admin") {
+    if (!isAuthenticated) {
       router.push("/login")
+      return
+    }
+    if (user?.role !== "admin") {
+      router.push("/dashboard")
+      return
     }
   }, [isAuthenticated, user, router])
 

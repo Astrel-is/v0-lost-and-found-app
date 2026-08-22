@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { requireAuth } from "@/lib/auth-middleware"
+import { rateLimit, getClientIdentifier } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
     const authResult = await requireAuth(request)
     if (authResult instanceof NextResponse) {
       return authResult
+    }
+
+    const clientId = getClientIdentifier(request)
+    const rateLimitResult = await rateLimit(clientId, { windowMs: 60000, maxRequests: 20 })
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 })
     }
 
     const userId = authResult.user.id

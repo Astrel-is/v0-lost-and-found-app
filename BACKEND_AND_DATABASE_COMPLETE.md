@@ -92,19 +92,19 @@ npm run dev
 \`\`\`
 ADMIN
   Email:    admin@vaultchurch.org
-  Password: AdminVault123!@#
+  Password: <bootstrap-password>
 
 VOLUNTEER
   Email:    volunteer@vaultchurch.org
-  Password: Volunteer@2024#Secure
+  Password: <bootstrap-password>
 
 USER #1
   Email:    john.doe@vaultchurch.org
-  Password: SecureUser123!@#
+  Password: <bootstrap-password>
 
 USER #2
   Email:    sarah.johnson@vaultchurch.org
-  Password: SecureUser123!@#
+  Password: <bootstrap-password>
 \`\`\`
 
 ---
@@ -335,7 +335,7 @@ npx ts-node scripts/setup-neon-database.ts
 # 5. Start development
 npm run dev
 
-# 6. Login with: admin@vaultchurch.org / AdminVault123!@#
+# 6. Login with: admin@vaultchurch.org / <bootstrap-password>
 \`\`\`
 
 That's it! Your backend and database are ready.

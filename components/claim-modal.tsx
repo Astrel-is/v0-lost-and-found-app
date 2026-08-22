@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Upload, CheckCircle } from "lucide-react"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
-import { claimsApi, ApiError } from "@/lib/api-client"
+import { claimsApi, uploadImage, ApiError } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 
 interface ClaimModalProps {
@@ -25,27 +25,46 @@ interface ClaimModalProps {
   itemName: string
 }
 
+const MAX_PROOF_SIZE = 5 * 1024 * 1024 // 5MB (matches server-side limit)
+
 export function ClaimModal({ itemId, itemName }: ClaimModalProps) {
   const { user } = useAuth()
   const { toast } = useToast()
   const [proofImage, setProofImage] = useState<string | null>(null)
+  const [proofFile, setProofFile] = useState<File | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [notes, setNotes] = useState("")
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setProofImage(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid File",
+        description: "Please upload an image file.",
+        variant: "destructive",
+      })
+      return
     }
+
+    if (file.size > MAX_PROOF_SIZE) {
+      toast({
+        title: "File Too Large",
+        description: "Proof photo must be less than 5MB.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Keep the real file for upload, and a local preview URL for display only.
+    setProofFile(file)
+    setProofImage(URL.createObjectURL(file))
   }
 
   const handleSubmit = async () => {
-    if (!proofImage || !user) {
+    if (!proofFile || !user) {
       toast({
         title: "Missing Information",
         description: "Please upload a proof photo.",
@@ -56,9 +75,14 @@ export function ClaimModal({ itemId, itemName }: ClaimModalProps) {
 
     setIsSubmitting(true)
     try {
+      // Upload the proof to Blob storage first (magic-byte verified server-side),
+      // then submit the claim with the public URL — avoids large base64 payloads
+      // in the database and the previous 5000-char proof limit.
+      const proofUrl = await uploadImage(proofFile)
+
       await claimsApi.create({
         itemId,
-        proofImage,
+        proofImage: proofUrl,
         claimantId: user.id,
         notes: notes.trim() || undefined,
       })

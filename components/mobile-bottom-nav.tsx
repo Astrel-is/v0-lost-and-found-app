@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import {
   LayoutDashboard,
@@ -18,10 +19,10 @@ import {
   Gift,
   Eye,
   Activity,
-  BookOpen,
   MessageSquare,
   MapPin,
   MoreHorizontal,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -37,7 +38,6 @@ const userNavItems: NavItem[] = [
   { href: "/browse", label: "Browse", icon: Search, roles: ["user"] },
   { href: "/upload", label: "Upload", icon: Upload, roles: ["user"] },
   { href: "/missions", label: "Missions", icon: Activity, roles: ["user"] },
-  { href: "/playbooks", label: "Playbooks", icon: BookOpen, roles: ["user"] },
   { href: "/my-uploads", label: "My Items", icon: Package, roles: ["user"] },
   { href: "/my-claims", label: "Claims", icon: FileCheck, roles: ["user"] },
   { href: "/orders", label: "Orders", icon: MessageSquare, roles: ["user"] },
@@ -62,6 +62,7 @@ const adminNavItems: NavItem[] = [
 export function MobileBottomNav() {
   const pathname = usePathname()
   const { user } = useAuth()
+  const [moreOpen, setMoreOpen] = useState(false)
 
   if (!user) return null
 
@@ -84,50 +85,92 @@ export function MobileBottomNav() {
   const MAX_ITEMS = 5
   const hasMore = navItems.length > MAX_ITEMS
   const displayItems = navItems.slice(0, MAX_ITEMS - (hasMore ? 1 : 0))
+  const overflowItems = hasMore ? navItems.slice(MAX_ITEMS - 1) : []
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-xl md:hidden">
-      <div className="flex h-16 items-center justify-around px-2">
-        {displayItems.map((item) => {
-          const Icon = item.icon
-          // Handle active state: exact match or starts with (but not for root paths like /admin matching /admin/items)
-          const isActive = pathname === item.href || 
-            (pathname.startsWith(item.href + "/") && item.href !== "/")
-          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-2 transition-colors",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
-              <span className={cn(
-                "text-[10px] font-medium truncate w-full text-center",
-                isActive && "text-primary"
-              )}>
-                {item.label}
-              </span>
-            </Link>
-          )
-        })}
-        {hasMore && (
-          <Link
-            href={user.role === "admin" ? "/admin" : "/dashboard"}
-            aria-label="More navigation items"
-            className="flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-2 transition-colors text-muted-foreground hover:text-foreground"
-          >
-            <MoreHorizontal className="h-5 w-5 shrink-0" />
-            <span className="text-[10px] font-medium truncate w-full text-center">
-              More
-            </span>
-          </Link>
+    <>
+      {moreOpen && overflowItems.length > 0 && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setMoreOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+        {moreOpen && overflowItems.length > 0 && (
+          <div className="border-t border-border bg-background shadow-lg">
+            <div className="mx-auto max-w-md px-4 py-2">
+              {overflowItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href || (pathname.startsWith(item.href + "/") && item.href !== "/")
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMoreOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors",
+                      isActive ? "text-primary bg-muted" : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
         )}
+        <nav className="border-t border-border bg-background/95 backdrop-blur-xl">
+          <div className="flex h-16 items-center justify-around px-2">
+            {displayItems.map((item) => {
+              const Icon = item.icon
+              // Handle active state: exact match or starts with (but not for root paths like /admin matching /admin/items)
+              const isActive = pathname === item.href || 
+                (pathname.startsWith(item.href + "/") && item.href !== "/")
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-2 transition-colors",
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
+                  <span className={cn(
+                    "text-[10px] font-medium truncate w-full text-center",
+                    isActive && "text-primary"
+                  )}>
+                    {item.label}
+                  </span>
+                </Link>
+              )
+            })}
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => setMoreOpen((open) => !open)}
+                aria-label="Toggle more navigation items"
+                aria-expanded={moreOpen}
+                className="flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 px-2 transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {moreOpen ? (
+                  <X className="h-5 w-5 shrink-0" />
+                ) : (
+                  <MoreHorizontal className="h-5 w-5 shrink-0" />
+                )}
+                <span className="text-[10px] font-medium truncate w-full text-center">
+                  {moreOpen ? "Close" : "More"}
+                </span>
+              </button>
+            )}
+          </div>
+        </nav>
       </div>
-    </nav>
+    </>
   )
 }

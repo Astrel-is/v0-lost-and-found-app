@@ -7,22 +7,44 @@ import type { NextRequest } from "next/server"
  * CSRF protection: verifies that state-changing requests originated from the
  * same site as the app. Browsers always attach an Origin header to cross-site
  * POST/PATCH/DELETE requests, so a mismatched origin means the request was
- * forged (e.g. submitted from an attacker's page). Requests without an Origin
- * header (curl, server-to-server) are allowed through.
+ * forged (e.g. submitted from an attacker's page).
+ *
+ * Compared against a configured allowlist (NEXT_PUBLIC_SITE_URL, falling back
+ * to the request Host) rather than the Host header alone, so an attacker who
+ * can influence Host cannot spoof a legitimate origin.
+ *
+ * Requests with no Origin are rejected when a Referer is present (browsers that
+ * strip Origin in privacy modes still send Referer); only truly header-less
+ * requests (curl, server-to-server) are allowed through.
  */
 export function assertSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get("origin")
-  if (!origin) return true
+  const referer = request.headers.get("referer")
 
-  const host = request.headers.get("host")
-  if (!host) return false
+  if (!origin) {
+    // No Origin header: if the client is a browser it will send Referer on
+    // cross-site state-changing requests. Allow only if there's no Referer
+    // (server-to-server / curl), otherwise reject.
+    return !referer
+  }
 
   try {
     const originUrl = new URL(origin)
-    return (
-      originUrl.host === host &&
-      (originUrl.protocol === "http:" || originUrl.protocol === "https:")
-    )
+    if (originUrl.protocol !== "http:" && originUrl.protocol !== "https:") {
+      return false
+    }
+
+    const configured = process.env.NEXT_PUBLIC_SITE_URL
+    let allowedHost: string | null
+    if (configured) {
+      allowedHost = new URL(configured).host
+    } else {
+      // Prefer the Host header; fall back to the request URL host for
+      // manually-constructed requests (e.g. tests) where no Host is set.
+      allowedHost = request.headers.get("host") ?? new URL(request.url).host
+    }
+
+    return !!allowedHost && originUrl.host === allowedHost
   } catch {
     return false
   }
